@@ -29,11 +29,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.guatimes.components.LocationSelectorBottomSheet
 import com.glucode.guatimes.components.LocationSelectorBottomSheetData
+import com.glucode.guatimes.components.LocationTargetSection
 import com.glucode.guatimes.components.ProgressCard
 import com.glucode.guatimes.components.ScheduleTimeLineItem
 import com.glucode.guatimes.components.ScheduleTimeLineItemData
@@ -51,6 +51,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltVie
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeContent(data: HomeData) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -77,8 +78,9 @@ fun HomeContent(data: HomeData) {
 
         LocationSection(
             data = data.locationSection.copy(
-                onFromClick = { showLocationSheet = true },
-                onToClick = { showLocationSheet = true }
+                onLocationChange = {
+                    showLocationSheet = true
+                },
             )
         )
 
@@ -98,37 +100,34 @@ fun HomeContent(data: HomeData) {
             )
         }
 
-        LocationSelectorBottomSheet(
-            showBottomSheet = showLocationSheet,
-            data = LocationSelectorBottomSheetData(locations = data.locationSection.locations),
-            onDismissRequest = { showLocationSheet = false },
-            onLocationSelected = {
-                showLocationSheet = false
-            }
-        )
+        if (showLocationSheet) {
+            LocationSelectorBottomSheet(
+                data = LocationSelectorBottomSheetData(locations = data.locationSection.locations),
+                onDismissRequest = { showLocationSheet = false },
+                onLocationSelected = { location ->
+                    showLocationSheet = false
+                }
+            )
+        }
     }
 }
 
 @Composable
 fun LocationSection(data: HomeLocationSelectionData) {
-    Column {
-        Text("From", style = MaterialTheme.typography.headlineSmall)
-        AssistChip(onClick = data.onFromClick, label = {
-            Text(
-                data.fromLocation,
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
+    LocationTargetSection(
+        targetLabel = LocationTarget.FROM.label,
+        locationName = data.fromLocation,
+        onClick = {
+            data.onLocationChange(LocationTarget.FROM)
         })
-        Text("To", style = MaterialTheme.typography.headlineSmall)
-        AssistChip(onClick = data.onToClick, label = {
-            Text(
-                data.toLocation,
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
+
+    LocationTargetSection(
+        targetLabel = LocationTarget.TO.label,
+        locationName = data.toLocation,
+        onClick = {
+            data.onLocationChange(LocationTarget.FROM)
         })
-    }
+
 }
 
 @Composable

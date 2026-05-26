@@ -33,8 +33,7 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
                     locationSection = HomeLocationSelectionData(
                         fromLocation = "Sandton",
                         toLocation = "Hatfield",
-                        onFromClick = {},
-                        onToClick = {},
+                        onLocationChange = { target -> },
                         locations = locations
                     ),
                     scheduleTimes = times,
@@ -62,10 +61,14 @@ data class HomeData(
 data class HomeLocationSelectionData(
     val fromLocation: String = "",
     val toLocation: String = "",
-    val onFromClick: () -> Unit = {},
-    val onToClick: () -> Unit = {},
+    val onLocationChange: (target: LocationTarget) -> Unit = {},
     val locations: List<Location> = emptyList()
 )
+
+enum class LocationTarget(val label: String) {
+    FROM("From"),
+    TO("To")
+}
 
 data class HomeInfoText(val title: String = "", val description: String = "")
 
@@ -97,7 +100,7 @@ data class Location(
 )
 
 private val locations = listOf(
-    Location(name = "Sandton"),
+    Location(name = "Sandton", disabled = true),
     Location(name = "Park"),
     Location(name = "Rosebank"),
     Location(name = "Marlboro"),
@@ -106,5 +109,5 @@ private val locations = listOf(
     Location(name = "Midrand"),
     Location(name = "Centurion"),
     Location(name = "Pretoria"),
-    Location(name = "Hatfield")
+    Location(name = "Hatfield", selected = true)
 )

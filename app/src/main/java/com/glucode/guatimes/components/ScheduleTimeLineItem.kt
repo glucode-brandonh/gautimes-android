@@ -57,8 +57,9 @@ fun ScheduleTimeLineItem(
             ) {
                 AssistChip(
                     colors = AssistChipDefaults.assistChipColors(
-                        containerColor = data.cartColor
+                        containerColor = data.cartColor,
                     ),
+                    border = null,
                     shape = CircleShape,
                     label = {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
