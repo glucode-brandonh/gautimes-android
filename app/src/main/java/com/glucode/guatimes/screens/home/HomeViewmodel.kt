@@ -30,14 +30,22 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
             delay(2000) // Simulate network delay
             _uiState.value = HomeState.HasData(
                 data = HomeData(
-                    fromLocation = "Sandton",
-                    toLocation = "Hatfield",
+                    locationSection = HomeLocationSelectionData(
+                        fromLocation = "Sandton",
+                        toLocation = "Hatfield",
+                        onFromClick = {},
+                        onToClick = {},
+                        locations = locations
+                    ),
                     scheduleTimes = times,
                     infoText = HomeInfoText(
                         title = "Coming up next",
                         description = "Peak fares will be in-affect until 18:45 tonight"
                     ),
-                    progress = ProgressCardData(progressTitleTime = "20 min", progressDescription = "until arrive")
+                    progress = ProgressCardData(
+                        progressTitleTime = "20 min",
+                        progressDescription = "until arrive"
+                    )
                 )
             )
         }
@@ -45,11 +53,18 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
 }
 
 data class HomeData(
-    val fromLocation: String = "",
-    val toLocation: String = "",
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
     val infoText: HomeInfoText = HomeInfoText(),
-    val progress: ProgressCardData = ProgressCardData()
+    val progress: ProgressCardData = ProgressCardData(),
+    val locationSection: HomeLocationSelectionData = HomeLocationSelectionData()
+)
+
+data class HomeLocationSelectionData(
+    val fromLocation: String = "",
+    val toLocation: String = "",
+    val onFromClick: () -> Unit = {},
+    val onToClick: () -> Unit = {},
+    val locations: List<Locations> = emptyList()
 )
 
 data class HomeInfoText(val title: String = "", val description: String = "")
@@ -59,7 +74,6 @@ sealed class HomeState {
     data class Error(val message: String) : HomeState()
     data class HasData(val data: HomeData) : HomeState()
 }
-
 
 private val times = listOf(
     ScheduleTimeLineItemData(timeText = "06:15", cartColor = cartYellow, cartNumber = 4),
@@ -74,4 +88,22 @@ private val times = listOf(
     ScheduleTimeLineItemData(timeText = "17:15", cartColor = cartGray, cartNumber = 8),
     ScheduleTimeLineItemData(timeText = "18:30", cartColor = cartYellow, cartNumber = 4),
     ScheduleTimeLineItemData(timeText = "19:45", cartColor = cartGray, cartNumber = 8)
+)
+
+data class Locations(
+    val name: String = "",
+    val selected: Boolean = false
+)
+
+private val locations = listOf(
+    Locations(name = "Sandton"),
+    Locations(name = "Park"),
+    Locations(name = "Rosebank"),
+    Locations(name = "Marlboro"),
+    Locations(name = "Rhodesfield"),
+    Locations(name = "O.R. Tambo"),
+    Locations(name = "Midrand"),
+    Locations(name = "Centurion"),
+    Locations(name = "Pretoria"),
+    Locations(name = "Hatfield")
 )

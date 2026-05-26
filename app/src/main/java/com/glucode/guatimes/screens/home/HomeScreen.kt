@@ -72,7 +72,7 @@ fun HomeContent(data: HomeData) {
             }
         })
 
-        LocationSection(from = data.fromLocation, to = data.toLocation)
+        LocationSection(data = data.locationSection)
 
         Spacer(modifier = Modifier.size(8.dp))
         ProgressCard(data = data.progress, onClick = {})
@@ -93,20 +93,24 @@ fun HomeContent(data: HomeData) {
 }
 
 @Composable
-fun LocationSection(from: String, to: String) {
+fun LocationSection(data: HomeLocationSelectionData) {
     Column {
         Text("From", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            from,
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
+        AssistChip(onClick = data.onToClick, label = {
+            Text(
+                data.fromLocation,
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        })
         Text("To", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            to,
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
+        AssistChip(onClick = data.onToClick, label = {
+            Text(
+                data.toLocation,
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        })
     }
 }
 
