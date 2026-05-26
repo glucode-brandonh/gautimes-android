@@ -81,6 +81,12 @@ data class HomeLocationSelectionData(
     val locations: List<Location> = emptyList()
 )
 
+data class Location(
+    val name: String = "",
+    val selected: Boolean = false,
+    val disabled: Boolean = false
+)
+
 enum class LocationTarget(val label: String) {
     FROM("From"),
     TO("To")
@@ -107,12 +113,6 @@ private val times = listOf(
     ScheduleTimeLineItemData(timeText = "17:15", cartColor = cartGray, cartNumber = 8),
     ScheduleTimeLineItemData(timeText = "18:30", cartColor = cartYellow, cartNumber = 4),
     ScheduleTimeLineItemData(timeText = "19:45", cartColor = cartGray, cartNumber = 8)
-)
-
-data class Location(
-    val name: String = "",
-    val selected: Boolean = false,
-    val disabled: Boolean = false
 )
 
 private val locations = listOf(
