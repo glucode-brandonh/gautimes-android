@@ -1,4 +1,4 @@
-package com.glucode.guatimes.components
+package com.glucode.gautimes.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,10 +22,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.glucode.guatimes.R
-import com.glucode.guatimes.ui.theme.GuatimesTheme
-import com.glucode.guatimes.ui.theme.cartGray
-import com.glucode.guatimes.ui.theme.cartYellow
+import com.glucode.gautimes.R
+import com.glucode.gautimes.ui.theme.GautimesTheme
+import com.glucode.gautimes.ui.theme.cartGray
+import com.glucode.gautimes.ui.theme.cartYellow
 
 data class ScheduleTimeLineItemData(
     val timeText: String = "00:00",
@@ -89,7 +89,7 @@ fun ScheduleTimeLineItem(
 @Preview
 @Composable
 fun ScheduleTimeLineItemPreview(modifier: Modifier = Modifier) {
-    GuatimesTheme {
+    GautimesTheme {
         ScheduleTimeLineItem(data = times.first())
     }
 }
@@ -97,7 +97,7 @@ fun ScheduleTimeLineItemPreview(modifier: Modifier = Modifier) {
 @Preview
 @Composable
 fun ScheduleTimeLineItemListPreview(modifier: Modifier = Modifier) {
-    GuatimesTheme {
+    GautimesTheme {
         LazyColumn {
             items(times.size) { index ->
                 ScheduleTimeLineItem(

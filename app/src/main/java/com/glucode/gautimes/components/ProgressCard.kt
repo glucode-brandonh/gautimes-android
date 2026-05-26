@@ -1,4 +1,4 @@
-package com.glucode.guatimes.components
+package com.glucode.gautimes.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.glucode.guatimes.ui.theme.GuatimesTheme
+import com.glucode.gautimes.ui.theme.GautimesTheme
 
 data class ProgressCardData(
     val progressTitleTime: String = "",
@@ -46,7 +46,7 @@ fun ProgressCard(
 @Preview
 @Composable
 fun ProgressCardPreview(modifier: Modifier = Modifier) {
-    GuatimesTheme {
+    GautimesTheme {
         ProgressCard(
             data = ProgressCardData(
                 progressTitleTime = "20 Min",

@@ -1,4 +1,4 @@
-package com.glucode.guatimes
+package com.glucode.gautimes
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,8 +10,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
-import com.glucode.guatimes.screens.home.HomeScreen
-import com.glucode.guatimes.ui.theme.GuatimesTheme
+import com.glucode.gautimes.screens.home.HomeScreen
+import com.glucode.gautimes.ui.theme.GautimesTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -20,8 +20,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            GuatimesTheme {
-                GuatimesApp()
+            GautimesTheme {
+                GautimesApp()
             }
         }
     }
@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
 
 @PreviewScreenSizes
 @Composable
-fun GuatimesApp() {
+fun GautimesApp() {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         HomeScreen(modifier = Modifier.padding(innerPadding))
     }

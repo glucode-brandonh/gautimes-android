@@ -1,11 +1,11 @@
-package com.glucode.guatimes.screens.home
+package com.glucode.gautimes.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.glucode.guatimes.components.ProgressCardData
-import com.glucode.guatimes.components.ScheduleTimeLineItemData
-import com.glucode.guatimes.ui.theme.cartGray
-import com.glucode.guatimes.ui.theme.cartYellow
+import com.glucode.gautimes.components.ProgressCardData
+import com.glucode.gautimes.components.ScheduleTimeLineItemData
+import com.glucode.gautimes.ui.theme.cartGray
+import com.glucode.gautimes.ui.theme.cartYellow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow

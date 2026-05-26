@@ -1,4 +1,4 @@
-package com.glucode.guatimes.ui.theme
+package com.glucode.gautimes.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

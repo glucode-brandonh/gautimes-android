@@ -1,4 +1,4 @@
-package com.glucode.guatimes.components
+package com.glucode.gautimes.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,8 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.glucode.guatimes.screens.home.Location
-import com.glucode.guatimes.ui.theme.GuatimesTheme
+import com.glucode.gautimes.screens.home.Location
+import com.glucode.gautimes.ui.theme.GautimesTheme
 
 data class LocationSelectorBottomSheetData(val locations: List<Location> = emptyList())
 
@@ -114,7 +114,7 @@ fun LocationSelectionCard(
 @Preview
 @Composable
 fun LocationSelectionCardPreview() {
-    GuatimesTheme {
+    GautimesTheme {
         LocationSelectionCard(location = Location(name = "Sandton", selected = true))
     }
 }
@@ -122,7 +122,7 @@ fun LocationSelectionCardPreview() {
 @Preview(showBackground = true)
 @Composable
 fun LocationSelectorBottomSheetPreview() {
-    GuatimesTheme {
+    GautimesTheme {
         LocationSelectorContent(
             locations = list,
             onLocationSelected = {}

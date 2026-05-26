@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Guatimes"
+rootProject.name = "Gautimes"
 include(":app")

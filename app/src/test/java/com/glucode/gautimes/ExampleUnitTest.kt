@@ -1,4 +1,4 @@
-package com.glucode.guatimes
+package com.glucode.gautimes
 
 import org.junit.Test
 

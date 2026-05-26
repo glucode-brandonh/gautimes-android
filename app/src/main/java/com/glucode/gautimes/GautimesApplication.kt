@@ -1,7 +1,7 @@
-package com.glucode.guatimes
+package com.glucode.gautimes
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class GuatimesApplication : Application()
+class GautimesApplication : Application()

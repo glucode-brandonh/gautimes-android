@@ -1,4 +1,4 @@
-package com.glucode.guatimes.ui.theme
+package com.glucode.gautimes.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

@@ -1,4 +1,4 @@
-package com.glucode.guatimes.components
+package com.glucode.gautimes.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AssistChip
@@ -6,7 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.glucode.guatimes.ui.theme.GuatimesTheme
+import com.glucode.gautimes.ui.theme.GautimesTheme
 
 @Composable
 fun LocationTargetSection(targetLabel: String, locationName: String, onClick: () -> Unit) {
@@ -25,7 +25,7 @@ fun LocationTargetSection(targetLabel: String, locationName: String, onClick: ()
 @Preview(showBackground = true)
 @Composable
 fun LocationTargetSectionPreview() {
-    GuatimesTheme() {
+    GautimesTheme() {
         LocationTargetSection("From", locationName = "Sandton", onClick = {})
     }
 }

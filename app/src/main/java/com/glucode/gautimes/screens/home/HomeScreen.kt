@@ -1,4 +1,4 @@
-package com.glucode.guatimes.screens.home
+package com.glucode.gautimes.screens.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,12 +31,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.glucode.guatimes.components.LocationSelectorBottomSheet
-import com.glucode.guatimes.components.LocationSelectorBottomSheetData
-import com.glucode.guatimes.components.LocationTargetSection
-import com.glucode.guatimes.components.ProgressCard
-import com.glucode.guatimes.components.ScheduleTimeLineItem
-import com.glucode.guatimes.components.ScheduleTimeLineItemData
+import com.glucode.gautimes.components.LocationSelectorBottomSheet
+import com.glucode.gautimes.components.LocationSelectorBottomSheetData
+import com.glucode.gautimes.components.LocationTargetSection
+import com.glucode.gautimes.components.ProgressCard
+import com.glucode.gautimes.components.ScheduleTimeLineItem
+import com.glucode.gautimes.components.ScheduleTimeLineItemData
 
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltViewModel()) {
