@@ -2,7 +2,7 @@ package com.glucode.gautimes.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.glucode.gautimes.components.LocationSelectorBottomSheetNew
+import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
 import com.glucode.gautimes.ui.theme.cartGray
@@ -10,35 +10,37 @@ import com.glucode.gautimes.ui.theme.cartYellow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class HomeViewmodel @Inject constructor() : ViewModel() {
 
-    private val _uiState = MutableStateFlow<HomeState>(HomeState.Loading)
-    val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
-
+    private val _isLoading = MutableStateFlow(true)
     private val _fromLocation = MutableStateFlow("Sandton")
-    val fromLocation: StateFlow<String> = _fromLocation.asStateFlow()
-
     private val _toLocation = MutableStateFlow("Hatfield")
-    val toLocation: StateFlow<String> = _toLocation.asStateFlow()
+    private val _showLocationSheet = MutableStateFlow(false)
+    private val _locationTarget = MutableStateFlow(LocationTarget.FROM)
 
-    init {
-        loadData()
-    }
-
-    fun loadData() {
-        viewModelScope.launch {
-            _uiState.value = HomeState.Loading
-            delay(2000) // Simulate network delay
-            _uiState.value = HomeState.HasData(
+    val uiState: StateFlow<HomeState> = combine(
+        _isLoading,
+        _fromLocation,
+        _toLocation,
+        _showLocationSheet,
+        _locationTarget
+    ) { isLoading, from, to, showSheet, target ->
+        if (isLoading) {
+            HomeState.Loading
+        } else {
+            HomeState.HasData(
                 data = HomeData(
-                    fromLocation = _fromLocation.value,
-                    toLocation = _toLocation.value,
+                    fromLocation = from,
+                    toLocation = to,
                     scheduleTimes = times,
                     infoText = HomeInfoText(
                         title = "Coming up next",
@@ -48,36 +50,51 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
                         progressTitleTime = "20 min",
                         progressDescription = "until arrive"
                     ),
+                    showLocationSheet = showSheet,
+                    locationSection = buildLocationSelector(target, from, to)
                 )
             )
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = HomeState.Loading
+    )
+
+    init {
+        loadData()
+    }
+
+    fun loadData() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            delay(2.seconds) // Simulate network delay
+            _isLoading.value = false
         }
     }
 
     fun updateFromLocation(location: String) {
         _fromLocation.value = location
-        updateHomeData { it.copy(fromLocation = location) }
     }
 
     fun updateToLocation(location: String) {
         _toLocation.value = location
-        updateHomeData { it.copy(toLocation = location) }
     }
 
-    private fun updateHomeData(update: (HomeData) -> HomeData) {
-        val currentState = _uiState.value
-        if (currentState is HomeState.HasData) {
-            _uiState.value = HomeState.HasData(update(currentState.data))
-        }
+    fun flipLocations() {
+        val temp = _fromLocation.value
+        _fromLocation.value = _toLocation.value
+        _toLocation.value = temp
     }
 
     fun buildLocationSelector(
         target: LocationTarget,
         fromLocation: String,
         toLocation: String
-    ): LocationSelectorBottomSheetNew {
+    ): LocationSelectorBottomSheetData {
         val selected = if (target == LocationTarget.FROM) fromLocation else toLocation
         val disabled = if (target == LocationTarget.FROM) toLocation else fromLocation
-        return LocationSelectorBottomSheetNew(
+        return LocationSelectorBottomSheetData(
             locations = locations,
             selectedLocation = selected,
             disabledLocation = disabled,
@@ -86,19 +103,8 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
     }
 
     fun toggleLocationSheet(show: Boolean, target: LocationTarget) {
-        val currentState = _uiState.value
-        if (currentState is HomeState.HasData) {
-            _uiState.value = currentState.copy(
-                data = currentState.data.copy(
-                    showLocationSheet = show,
-                    locationSection = buildLocationSelector(
-                        target = target,
-                        fromLocation = _fromLocation.value,
-                        toLocation = _toLocation.value
-                    )
-                )
-            )
-        }
+        _locationTarget.value = target
+        _showLocationSheet.value = show
     }
 }
 
@@ -108,7 +114,7 @@ data class HomeData(
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
     val infoText: HomeInfoText = HomeInfoText(),
     val progress: ProgressCardData = ProgressCardData(),
-    val locationSection: LocationSelectorBottomSheetNew = LocationSelectorBottomSheetNew(locations = locations),
+    val locationSection: LocationSelectorBottomSheetData = LocationSelectorBottomSheetData(locations = locations),
     val showLocationSheet: Boolean = false,
 )
 

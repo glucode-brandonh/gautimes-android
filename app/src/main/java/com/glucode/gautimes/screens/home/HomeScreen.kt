@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -17,6 +19,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -79,6 +82,9 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
             toLocation = data.toLocation,
             onLocationChange = { target ->
                 viewmodel.toggleLocationSheet(true, target)
+            },
+            onFlipLocations = {
+                viewmodel.flipLocations()
             }
         )
 
@@ -116,23 +122,42 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
 
 @Composable
 fun LocationSection(
+    modifier: Modifier = Modifier,
     fromLocation: String,
     toLocation: String,
-    onLocationChange: (target: LocationTarget) -> Unit
+    onLocationChange: (target: LocationTarget) -> Unit,
+    onFlipLocations: () -> Unit
 ) {
-    LocationTargetSection(
-        targetLabel = LocationTarget.FROM.label,
-        locationName = fromLocation,
-        onClick = {
-            onLocationChange(LocationTarget.FROM)
-        })
-
-    LocationTargetSection(
-        targetLabel = LocationTarget.TO.label,
-        locationName = toLocation,
-        onClick = {
-            onLocationChange(LocationTarget.TO)
-        })
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            LocationTargetSection(
+                targetLabel = LocationTarget.FROM.label,
+                locationName = fromLocation,
+                onClick = {
+                    onLocationChange(LocationTarget.FROM)
+                })
+            LocationTargetSection(
+                targetLabel = LocationTarget.TO.label,
+                locationName = toLocation,
+                onClick = {
+                    onLocationChange(LocationTarget.TO)
+                })
+        }
+        IconButton(onClick = onFlipLocations) {
+            Icon(
+                imageVector = Icons.Default.SwapVert,
+                contentDescription = "Flip Locations",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
 }
 
 @Composable

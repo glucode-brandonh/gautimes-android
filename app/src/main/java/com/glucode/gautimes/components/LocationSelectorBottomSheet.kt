@@ -33,7 +33,7 @@ import com.glucode.gautimes.screens.home.LocationTarget
 import com.glucode.gautimes.ui.theme.GautimesTheme
 
 
-data class LocationSelectorBottomSheetNew(
+data class LocationSelectorBottomSheetData(
     val locations: List<String> = emptyList(),
     val disabledLocation: String = "",
     val selectedLocation: String = "",
@@ -45,7 +45,7 @@ data class LocationSelectorBottomSheetNew(
 fun LocationSelectorBottomSheet(
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    data: LocationSelectorBottomSheetNew = LocationSelectorBottomSheetNew(),
+    data: LocationSelectorBottomSheetData = LocationSelectorBottomSheetData(),
     onDismissRequest: (String, LocationTarget) -> Unit,
 ) {
     var selectedLocation by remember { mutableStateOf(data.selectedLocation) }
@@ -72,7 +72,7 @@ fun LocationSelectorContent(
     modifier: Modifier = Modifier,
     selectedLocation: String = "",
     onSelectionChange: (String) -> Unit = {},
-    data: LocationSelectorBottomSheetNew,
+    data: LocationSelectorBottomSheetData,
     onDismissRequest: (String, LocationTarget) -> Unit,
 ) {
     LazyColumn(
@@ -160,7 +160,7 @@ fun LocationSelectionCardPreview() {
 fun LocationSelectorBottomSheetPreview() {
     GautimesTheme {
         LocationSelectorContent(
-            data = LocationSelectorBottomSheetNew(locations = listOf("Sandton", "Rosebank")),
+            data = LocationSelectorBottomSheetData(locations = listOf("Sandton", "Rosebank")),
             onDismissRequest = { test1, test2 ->
 
             }
