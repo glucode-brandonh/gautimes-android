@@ -33,7 +33,9 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
                     locationSection = HomeLocationSelectionData(
                         fromLocation = "Sandton",
                         toLocation = "Hatfield",
-                        onLocationChange = { target -> },
+                        onLocationChange = { target ->
+                            toggleLocationSheet(true)
+                        },
                         locations = locations
                     ),
                     scheduleTimes = times,
@@ -44,8 +46,20 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
                     progress = ProgressCardData(
                         progressTitleTime = "20 min",
                         progressDescription = "until arrive"
-                    )
+                    ),
+                    onToggleLocationSheet = { toggle ->
+                        toggleLocationSheet(toggle)
+                    }
                 )
+            )
+        }
+    }
+
+    fun toggleLocationSheet(show: Boolean) {
+        val currentState = _uiState.value
+        if (currentState is HomeState.HasData) {
+            _uiState.value = currentState.copy(
+                data = currentState.data.copy(showLocationSheet = show)
             )
         }
     }
@@ -55,7 +69,9 @@ data class HomeData(
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
     val infoText: HomeInfoText = HomeInfoText(),
     val progress: ProgressCardData = ProgressCardData(),
-    val locationSection: HomeLocationSelectionData = HomeLocationSelectionData()
+    val locationSection: HomeLocationSelectionData = HomeLocationSelectionData(),
+    val showLocationSheet: Boolean = false,
+    val onToggleLocationSheet: (Boolean) -> Unit = {}
 )
 
 data class HomeLocationSelectionData(

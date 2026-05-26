@@ -55,7 +55,6 @@ fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltVie
 @Composable
 fun HomeContent(data: HomeData) {
     var showDatePicker by remember { mutableStateOf(false) }
-    var showLocationSheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -77,11 +76,7 @@ fun HomeContent(data: HomeData) {
         })
 
         LocationSection(
-            data = data.locationSection.copy(
-                onLocationChange = {
-                    showLocationSheet = true
-                },
-            )
+            data = data.locationSection
         )
 
         Spacer(modifier = Modifier.size(8.dp))
@@ -100,12 +95,12 @@ fun HomeContent(data: HomeData) {
             )
         }
 
-        if (showLocationSheet) {
+        if (data.showLocationSheet) {
             LocationSelectorBottomSheet(
                 data = LocationSelectorBottomSheetData(locations = data.locationSection.locations),
-                onDismissRequest = { showLocationSheet = false },
+                onDismissRequest = { data.onToggleLocationSheet(false) },
                 onLocationSelected = { location ->
-                    showLocationSheet = false
+                    data.onToggleLocationSheet(false)
                 }
             )
         }
