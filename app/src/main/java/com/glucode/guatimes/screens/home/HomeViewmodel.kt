@@ -30,12 +30,14 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
             delay(2000) // Simulate network delay
             _uiState.value = HomeState.HasData(
                 data = HomeData(
+                    fromLocation = "Sandton",
+                    toLocation = "Hatfield",
                     scheduleTimes = times,
                     infoText = HomeInfoText(
                         title = "Coming up next",
                         description = "Peak fares will be in-affect until 18:45 tonight"
                     ),
-                    progress = ProgressCardData(progressTitleTime = "20 min", progressDescription = "until arrive", )
+                    progress = ProgressCardData(progressTitleTime = "20 min", progressDescription = "until arrive")
                 )
             )
         }
@@ -43,6 +45,8 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
 }
 
 data class HomeData(
+    val fromLocation: String = "",
+    val toLocation: String = "",
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
     val infoText: HomeInfoText = HomeInfoText(),
     val progress: ProgressCardData = ProgressCardData()
