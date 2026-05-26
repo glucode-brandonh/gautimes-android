@@ -29,28 +29,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.glucode.gautimes.screens.home.Location
+import com.glucode.gautimes.screens.home.LocationTarget
 import com.glucode.gautimes.ui.theme.GautimesTheme
 
-data class LocationSelectorBottomSheetData(val locations: List<Location> = emptyList())
+
+data class LocationSelectorBottomSheetNew(
+    val locations: List<String> = emptyList(),
+    val disabledLocation: String = "",
+    val selectedLocation: String = "",
+    val locationTarget: LocationTarget = LocationTarget.FROM
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationSelectorBottomSheet(
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    data: LocationSelectorBottomSheetData = LocationSelectorBottomSheetData(),
-    onDismissRequest: () -> Unit,
-    onLocationSelected: (Location) -> Unit
+    data: LocationSelectorBottomSheetNew = LocationSelectorBottomSheetNew(),
+    onDismissRequest: (String, LocationTarget) -> Unit,
 ) {
+    var selectedLocation by remember { mutableStateOf(data.selectedLocation) }
     ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = {
+            onDismissRequest.invoke(selectedLocation, data.locationTarget)
+        },
         sheetState = sheetState,
         modifier = modifier,
     ) {
         LocationSelectorContent(
-            locations = data.locations,
-            onLocationSelected = onLocationSelected
+            data = data,
+            selectedLocation = selectedLocation,
+            onDismissRequest = onDismissRequest,
+            onSelectionChange = { location ->
+                selectedLocation = location
+            }
         )
     }
 }
@@ -58,10 +70,11 @@ fun LocationSelectorBottomSheet(
 @Composable
 fun LocationSelectorContent(
     modifier: Modifier = Modifier,
-    locations: List<Location>,
-    onLocationSelected: (Location) -> Unit
+    selectedLocation: String = "",
+    onSelectionChange: (String) -> Unit = {},
+    data: LocationSelectorBottomSheetNew,
+    onDismissRequest: (String, LocationTarget) -> Unit,
 ) {
-    var selectedLocation by remember { mutableStateOf(locations.find { it.selected }) }
     LazyColumn(
         modifier = modifier
             .fillMaxWidth()
@@ -78,17 +91,21 @@ fun LocationSelectorContent(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Button(onClick = {
-                    selectedLocation?.let { onLocationSelected(it) }
+                    onDismissRequest.invoke(selectedLocation, data.locationTarget)
                 }) {
                     Text("Done")
                 }
             }
             Spacer(Modifier.size(16.dp))
         }
-        items(locations) { location ->
+        items(data.locations) { location ->
             LocationSelectionCard(
-                location = location.copy(selected = location == selectedLocation),
-                onClick = { selectedLocation = location }
+                selected = location == selectedLocation,
+                name = location,
+                disabled = location == data.disabledLocation,
+                onClick = {
+                    onSelectionChange(location)
+                }
             )
             Spacer(Modifier.size(8.dp))
         }
@@ -98,13 +115,15 @@ fun LocationSelectorContent(
 @Composable
 fun LocationSelectionCard(
     modifier: Modifier = Modifier,
-    location: Location,
+    name: String = "",
+    selected: Boolean = false,
+    disabled: Boolean = false,
     onClick: () -> Unit = {}
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(enabled = !location.disabled) { onClick() }
+            .clickable(enabled = !disabled) { onClick() }
     ) {
         Row(
             modifier = Modifier
@@ -114,10 +133,10 @@ fun LocationSelectionCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = location.name,
-                color = if (location.disabled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface
+                text = name,
+                color = if (disabled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface
             )
-            if (location.selected) {
+            if (selected) {
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Selected",
@@ -132,7 +151,7 @@ fun LocationSelectionCard(
 @Composable
 fun LocationSelectionCardPreview() {
     GautimesTheme {
-        LocationSelectionCard(location = Location(name = "Sandton", selected = true))
+        LocationSelectionCard(name = "Sandton")
     }
 }
 
@@ -141,15 +160,10 @@ fun LocationSelectionCardPreview() {
 fun LocationSelectorBottomSheetPreview() {
     GautimesTheme {
         LocationSelectorContent(
-            locations = list,
-            onLocationSelected = {}
+            data = LocationSelectorBottomSheetNew(locations = listOf("Sandton", "Rosebank")),
+            onDismissRequest = { test1, test2 ->
+
+            }
         )
     }
 }
-
-private val list = listOf(
-    Location(name = "Sandton", selected = true),
-    Location(name = "Rosebank"),
-    Location(name = "Marlboro", disabled = true),
-    Location(name = "Pretoria")
-)

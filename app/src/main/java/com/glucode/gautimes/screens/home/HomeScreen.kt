@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.gautimes.components.LocationSelectorBottomSheet
-import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.LocationTargetSection
 import com.glucode.gautimes.components.ProgressCard
 import com.glucode.gautimes.components.ScheduleTimeLineItem
@@ -46,14 +45,14 @@ fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltVie
         when (val state = uiState) {
             is HomeState.Loading -> CircularProgressIndicator()
             is HomeState.Error -> Text(text = "Error: ${state.message}")
-            is HomeState.HasData -> HomeContent(data = state.data)
+            is HomeState.HasData -> HomeContent(data = state.data, viewmodel = viewmodel)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeContent(data: HomeData) {
+fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
     var showDatePicker by remember { mutableStateOf(false) }
 
     Column(
@@ -76,7 +75,11 @@ fun HomeContent(data: HomeData) {
         })
 
         LocationSection(
-            data = data.locationSection
+            fromLocation = data.fromLocation,
+            toLocation = data.toLocation,
+            onLocationChange = { target ->
+                viewmodel.toggleLocationSheet(true, target)
+            }
         )
 
         Spacer(modifier = Modifier.size(8.dp))
@@ -97,32 +100,39 @@ fun HomeContent(data: HomeData) {
 
         if (data.showLocationSheet) {
             LocationSelectorBottomSheet(
-                data = LocationSelectorBottomSheetData(locations = data.locationSection.locations),
-                onDismissRequest = { data.onToggleLocationSheet(false) },
-                onLocationSelected = { location ->
-                    data.onToggleLocationSheet(false)
-                }
+                data = data.locationSection,
+                onDismissRequest = { location, target ->
+                    if (target == LocationTarget.FROM) {
+                        viewmodel.updateFromLocation(location)
+                    } else {
+                        viewmodel.updateToLocation(location)
+                    }
+                    viewmodel.toggleLocationSheet(false, target)
+                },
             )
         }
     }
 }
 
 @Composable
-fun LocationSection(data: HomeLocationSelectionData) {
+fun LocationSection(
+    fromLocation: String,
+    toLocation: String,
+    onLocationChange: (target: LocationTarget) -> Unit
+) {
     LocationTargetSection(
         targetLabel = LocationTarget.FROM.label,
-        locationName = data.fromLocation,
+        locationName = fromLocation,
         onClick = {
-            data.onLocationChange(LocationTarget.FROM)
+            onLocationChange(LocationTarget.FROM)
         })
 
     LocationTargetSection(
         targetLabel = LocationTarget.TO.label,
-        locationName = data.toLocation,
+        locationName = toLocation,
         onClick = {
-            data.onLocationChange(LocationTarget.FROM)
+            onLocationChange(LocationTarget.TO)
         })
-
 }
 
 @Composable

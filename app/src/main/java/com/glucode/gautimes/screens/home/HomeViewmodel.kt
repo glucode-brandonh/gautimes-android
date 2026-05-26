@@ -2,6 +2,7 @@ package com.glucode.gautimes.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.glucode.gautimes.components.LocationSelectorBottomSheetNew
 import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
 import com.glucode.gautimes.ui.theme.cartGray
@@ -20,6 +21,12 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow<HomeState>(HomeState.Loading)
     val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
 
+    private val _fromLocation = MutableStateFlow("Sandton")
+    val fromLocation: StateFlow<String> = _fromLocation.asStateFlow()
+
+    private val _toLocation = MutableStateFlow("Hatfield")
+    val toLocation: StateFlow<String> = _toLocation.asStateFlow()
+
     init {
         loadData()
     }
@@ -30,14 +37,8 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
             delay(2000) // Simulate network delay
             _uiState.value = HomeState.HasData(
                 data = HomeData(
-                    locationSection = HomeLocationSelectionData(
-                        fromLocation = "Sandton",
-                        toLocation = "Hatfield",
-                        onLocationChange = { target ->
-                            toggleLocationSheet(true)
-                        },
-                        locations = locations
-                    ),
+                    fromLocation = _fromLocation.value,
+                    toLocation = _toLocation.value,
                     scheduleTimes = times,
                     infoText = HomeInfoText(
                         title = "Coming up next",
@@ -47,44 +48,68 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
                         progressTitleTime = "20 min",
                         progressDescription = "until arrive"
                     ),
-                    onToggleLocationSheet = { toggle ->
-                        toggleLocationSheet(toggle)
-                    }
                 )
             )
         }
     }
 
-    fun toggleLocationSheet(show: Boolean) {
+    fun updateFromLocation(location: String) {
+        _fromLocation.value = location
+        updateHomeData { it.copy(fromLocation = location) }
+    }
+
+    fun updateToLocation(location: String) {
+        _toLocation.value = location
+        updateHomeData { it.copy(toLocation = location) }
+    }
+
+    private fun updateHomeData(update: (HomeData) -> HomeData) {
+        val currentState = _uiState.value
+        if (currentState is HomeState.HasData) {
+            _uiState.value = HomeState.HasData(update(currentState.data))
+        }
+    }
+
+    fun buildLocationSelector(
+        target: LocationTarget,
+        fromLocation: String,
+        toLocation: String
+    ): LocationSelectorBottomSheetNew {
+        val selected = if (target == LocationTarget.FROM) fromLocation else toLocation
+        val disabled = if (target == LocationTarget.FROM) toLocation else fromLocation
+        return LocationSelectorBottomSheetNew(
+            locations = locations,
+            selectedLocation = selected,
+            disabledLocation = disabled,
+            locationTarget = target
+        )
+    }
+
+    fun toggleLocationSheet(show: Boolean, target: LocationTarget) {
         val currentState = _uiState.value
         if (currentState is HomeState.HasData) {
             _uiState.value = currentState.copy(
-                data = currentState.data.copy(showLocationSheet = show)
+                data = currentState.data.copy(
+                    showLocationSheet = show,
+                    locationSection = buildLocationSelector(
+                        target = target,
+                        fromLocation = _fromLocation.value,
+                        toLocation = _toLocation.value
+                    )
+                )
             )
         }
     }
 }
 
 data class HomeData(
+    val fromLocation: String = "",
+    val toLocation: String = "",
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
     val infoText: HomeInfoText = HomeInfoText(),
     val progress: ProgressCardData = ProgressCardData(),
-    val locationSection: HomeLocationSelectionData = HomeLocationSelectionData(),
+    val locationSection: LocationSelectorBottomSheetNew = LocationSelectorBottomSheetNew(locations = locations),
     val showLocationSheet: Boolean = false,
-    val onToggleLocationSheet: (Boolean) -> Unit = {}
-)
-
-data class HomeLocationSelectionData(
-    val fromLocation: String = "",
-    val toLocation: String = "",
-    val onLocationChange: (target: LocationTarget) -> Unit = {},
-    val locations: List<Location> = emptyList()
-)
-
-data class Location(
-    val name: String = "",
-    val selected: Boolean = false,
-    val disabled: Boolean = false
 )
 
 enum class LocationTarget(val label: String) {
@@ -116,14 +141,14 @@ private val times = listOf(
 )
 
 private val locations = listOf(
-    Location(name = "Sandton", disabled = true),
-    Location(name = "Park"),
-    Location(name = "Rosebank"),
-    Location(name = "Marlboro"),
-    Location(name = "Rhodesfield"),
-    Location(name = "O.R. Tambo"),
-    Location(name = "Midrand"),
-    Location(name = "Centurion"),
-    Location(name = "Pretoria"),
-    Location(name = "Hatfield", selected = true)
+    "Sandton",
+    "Park",
+    "Rosebank",
+    "Marlboro",
+    "Rhodesfield",
+    "O.R. Tambo",
+    "Midrand",
+    "Centurion",
+    "Pretoria",
+    "Hatfield"
 )
