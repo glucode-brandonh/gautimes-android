@@ -7,6 +7,7 @@ import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
 import com.glucode.gautimes.ui.theme.cartGray
 import com.glucode.gautimes.ui.theme.cartYellow
+import com.glucode.gautimes.utils.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
@@ -24,23 +26,32 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     private val _fromLocation = MutableStateFlow("Sandton")
     private val _toLocation = MutableStateFlow("Hatfield")
+    private val _selectedDate = MutableStateFlow(Calendar.getInstance().timeInMillis)
     private val _showLocationSheet = MutableStateFlow(false)
     private val _locationTarget = MutableStateFlow(LocationTarget.FROM)
 
-    val uiState: StateFlow<HomeState> = combine(
-        _isLoading,
+    private val selectionState = combine(
         _fromLocation,
         _toLocation,
+        _selectedDate
+    ) { from, to, date ->
+        SelectionState(from, to, date)
+    }
+
+    val uiState: StateFlow<HomeState> = combine(
+        _isLoading,
+        selectionState,
         _showLocationSheet,
         _locationTarget
-    ) { isLoading, from, to, showSheet, target ->
+    ) { isLoading, selection, showSheet, target ->
         if (isLoading) {
             HomeState.Loading
         } else {
             HomeState.HasData(
                 data = HomeData(
-                    fromLocation = from,
-                    toLocation = to,
+                    fromLocation = selection.from,
+                    toLocation = selection.to,
+                    dateLabel = DateUtils.formatDateLabel(selection.dateMillis),
                     scheduleTimes = times,
                     infoText = HomeInfoText(
                         title = "Coming up next",
@@ -51,7 +62,7 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
                         progressDescription = "until arrive"
                     ),
                     showLocationSheet = showSheet,
-                    locationSection = buildLocationSelector(target, from, to)
+                    locationSection = buildLocationSelector(target, selection.from, selection.to)
                 )
             )
         }
@@ -87,6 +98,12 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
         _toLocation.value = temp
     }
 
+    fun updateDate(millis: Long?) {
+        millis?.let {
+            _selectedDate.value = it
+        }
+    }
+
     fun buildLocationSelector(
         target: LocationTarget,
         fromLocation: String,
@@ -108,9 +125,16 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
     }
 }
 
+data class SelectionState(
+    val from: String,
+    val to: String,
+    val dateMillis: Long
+)
+
 data class HomeData(
     val fromLocation: String = "",
     val toLocation: String = "",
+    val dateLabel: String = "Today",
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
     val infoText: HomeInfoText = HomeInfoText(),
     val progress: ProgressCardData = ProgressCardData(),

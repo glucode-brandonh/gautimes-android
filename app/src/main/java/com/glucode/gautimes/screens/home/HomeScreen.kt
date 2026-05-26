@@ -24,6 +24,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.SelectableDates
+import java.util.Calendar
+import java.util.TimeZone
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,7 +76,7 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                     contentDescription = "Calendar"
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                Text("Today", style = MaterialTheme.typography.titleMedium)
+                Text(data.dateLabel, style = MaterialTheme.typography.titleMedium)
             }
         })
 
@@ -99,7 +102,7 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
 
         if (showDatePicker) {
             DatePickerModal(
-                onDateSelected = { /* Handle date selection */ },
+                onDateSelected = { viewmodel.updateDate(it) },
                 onDismiss = { showDatePicker = false }
             )
         }
@@ -174,7 +177,22 @@ fun DatePickerModal(
     onDateSelected: (Long?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val datePickerState = rememberDatePickerState()
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                return utcTimeMillis >= calendar.timeInMillis
+            }
+
+            override fun isSelectableYear(year: Int): Boolean {
+                return year >= Calendar.getInstance().get(Calendar.YEAR)
+            }
+        }
+    )
 
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -192,7 +210,7 @@ fun DatePickerModal(
             }
         }
     ) {
-        DatePicker(state = datePickerState)
+        DatePicker(state = datePickerState, showModeToggle = false)
     }
 }
 
