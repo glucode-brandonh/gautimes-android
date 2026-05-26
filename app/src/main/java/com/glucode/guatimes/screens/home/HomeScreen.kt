@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.glucode.guatimes.components.LocationSelectorBottomSheet
+import com.glucode.guatimes.components.LocationSelectorBottomSheetData
 import com.glucode.guatimes.components.ProgressCard
 import com.glucode.guatimes.components.ScheduleTimeLineItem
 import com.glucode.guatimes.components.ScheduleTimeLineItemData
@@ -52,6 +54,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltVie
 @Composable
 fun HomeContent(data: HomeData) {
     var showDatePicker by remember { mutableStateOf(false) }
+    var showLocationSheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -72,7 +75,12 @@ fun HomeContent(data: HomeData) {
             }
         })
 
-        LocationSection(data = data.locationSection)
+        LocationSection(
+            data = data.locationSection.copy(
+                onFromClick = { showLocationSheet = true },
+                onToClick = { showLocationSheet = true }
+            )
+        )
 
         Spacer(modifier = Modifier.size(8.dp))
         ProgressCard(data = data.progress, onClick = {})
@@ -89,6 +97,15 @@ fun HomeContent(data: HomeData) {
                 onDismiss = { showDatePicker = false }
             )
         }
+
+        LocationSelectorBottomSheet(
+            showBottomSheet = showLocationSheet,
+            data = LocationSelectorBottomSheetData(locations = data.locationSection.locations),
+            onDismissRequest = { showLocationSheet = false },
+            onLocationSelected = {
+                showLocationSheet = false
+            }
+        )
     }
 }
 
@@ -96,7 +113,7 @@ fun HomeContent(data: HomeData) {
 fun LocationSection(data: HomeLocationSelectionData) {
     Column {
         Text("From", style = MaterialTheme.typography.headlineSmall)
-        AssistChip(onClick = data.onToClick, label = {
+        AssistChip(onClick = data.onFromClick, label = {
             Text(
                 data.fromLocation,
                 style = MaterialTheme.typography.headlineLarge,
@@ -160,10 +177,4 @@ fun HomeScreenScheduleList(modifier: Modifier = Modifier, times: List<ScheduleTi
             Spacer(modifier = Modifier.size(8.dp))
         }
     }
-}
-
-@Preview
-@Composable
-fun HomeScreenPreview(modifier: Modifier = Modifier) {
-    HomeScreen()
 }

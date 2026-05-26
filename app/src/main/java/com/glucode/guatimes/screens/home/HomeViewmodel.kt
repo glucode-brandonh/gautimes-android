@@ -64,7 +64,7 @@ data class HomeLocationSelectionData(
     val toLocation: String = "",
     val onFromClick: () -> Unit = {},
     val onToClick: () -> Unit = {},
-    val locations: List<Locations> = emptyList()
+    val locations: List<Location> = emptyList()
 )
 
 data class HomeInfoText(val title: String = "", val description: String = "")
@@ -90,20 +90,21 @@ private val times = listOf(
     ScheduleTimeLineItemData(timeText = "19:45", cartColor = cartGray, cartNumber = 8)
 )
 
-data class Locations(
+data class Location(
     val name: String = "",
-    val selected: Boolean = false
+    val selected: Boolean = false,
+    val disabled: Boolean = false
 )
 
 private val locations = listOf(
-    Locations(name = "Sandton"),
-    Locations(name = "Park"),
-    Locations(name = "Rosebank"),
-    Locations(name = "Marlboro"),
-    Locations(name = "Rhodesfield"),
-    Locations(name = "O.R. Tambo"),
-    Locations(name = "Midrand"),
-    Locations(name = "Centurion"),
-    Locations(name = "Pretoria"),
-    Locations(name = "Hatfield")
+    Location(name = "Sandton"),
+    Location(name = "Park"),
+    Location(name = "Rosebank"),
+    Location(name = "Marlboro"),
+    Location(name = "Rhodesfield"),
+    Location(name = "O.R. Tambo"),
+    Location(name = "Midrand"),
+    Location(name = "Centurion"),
+    Location(name = "Pretoria"),
+    Location(name = "Hatfield")
 )
