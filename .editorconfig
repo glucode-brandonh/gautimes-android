@@ -1,0 +1,5 @@
+root = true
+
+[*.{kt,kts}]
+# Disable function naming rule to allow PascalCase for @Composable functions
+ktlint_standard_function-naming = disabled
