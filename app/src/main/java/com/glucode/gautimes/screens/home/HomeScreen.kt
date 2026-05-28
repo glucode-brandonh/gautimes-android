@@ -166,7 +166,10 @@ fun LocationSection(
 @Composable
 fun InfoSection(info: HomeInfoText) {
     Column {
-        Text(info.title, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            info.title,
+            style = MaterialTheme.typography.headlineSmallEmphasized
+        )
         Text(info.description)
     }
 }

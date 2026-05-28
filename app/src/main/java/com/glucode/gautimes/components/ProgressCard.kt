@@ -37,7 +37,10 @@ fun ProgressCard(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(data.progressTitleTime, style = MaterialTheme.typography.displayLarge)
+            Text(
+                data.progressTitleTime,
+                style = MaterialTheme.typography.displayLargeEmphasized
+            )
             Text(data.progressDescription)
         }
     }
