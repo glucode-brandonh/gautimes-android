@@ -6,10 +6,13 @@ import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
-import com.glucode.gautimes.data.repository.*
 import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 import com.glucode.gautimes.data.local.entities.StationEntity
-import com.glucode.gautimes.ui.theme.cartGray
+import com.glucode.gautimes.data.repository.ApiError
+import com.glucode.gautimes.data.repository.ApiResult
+import com.glucode.gautimes.data.repository.HealthRepository
+import com.glucode.gautimes.data.repository.JourneysRepository
+import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -120,7 +123,7 @@ class HomeViewmodel @Inject constructor(
                     cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
                     cartNumber = firstLeg?.carriages ?: 4
                 )
-            }.ifEmpty { times }
+            }
 
             HomeState.HasData(
                 data = HomeData(
@@ -378,21 +381,6 @@ private fun String.toColor(): androidx.compose.ui.graphics.Color {
         androidx.compose.ui.graphics.Color.Gray
     }
 }
-
-private val times = listOf(
-    ScheduleTimeLineItemData(timeText = "06:15", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "07:00", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "08:30", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "09:45", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "11:00", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "12:15", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "13:30", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "14:45", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "16:00", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "17:15", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "18:30", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "19:45", cartColor = cartGray, cartNumber = 8)
-)
 
 private val locations = listOf(
     "Sandton",

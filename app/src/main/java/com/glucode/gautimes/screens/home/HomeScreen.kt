@@ -26,12 +26,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.SelectableDates
-import java.util.Calendar
-import java.util.TimeZone
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,6 +46,8 @@ import com.glucode.gautimes.components.LocationTargetSection
 import com.glucode.gautimes.components.ProgressCard
 import com.glucode.gautimes.components.ScheduleTimeLineItem
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
+import java.util.Calendar
+import java.util.TimeZone
 
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltViewModel()) {
@@ -128,7 +128,10 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
         InfoSection(info = data.infoText)
 
         Spacer(modifier = Modifier.size(8.dp))
-        HomeScreenScheduleList(times = data.scheduleTimes)
+        HomeScreenScheduleList(
+            times = data.scheduleTimes,
+            checkState = data.journeysCheck
+        )
 
         if (showDatePicker) {
             DatePickerModal(
@@ -349,13 +352,44 @@ fun DatePickerModal(
 }
 
 @Composable
-fun HomeScreenScheduleList(modifier: Modifier = Modifier, times: List<ScheduleTimeLineItemData>) {
-    LazyColumn(modifier = modifier) {
-        items(times.size) { index ->
-            ScheduleTimeLineItem(
-                data = times[index]
-            )
-            Spacer(modifier = Modifier.size(8.dp))
+fun HomeScreenScheduleList(
+    modifier: Modifier = Modifier,
+    times: List<ScheduleTimeLineItemData>,
+    checkState: JourneysCheckState
+) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        if (checkState is JourneysCheckState.Checking) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (times.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CloudOff,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    "No schedule found",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(times.size) { index ->
+                    ScheduleTimeLineItem(
+                        data = times[index]
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                }
+            }
         }
     }
 }
