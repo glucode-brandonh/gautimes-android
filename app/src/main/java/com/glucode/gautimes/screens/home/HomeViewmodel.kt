@@ -2,9 +2,12 @@ package com.glucode.gautimes.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
+import com.glucode.gautimes.data.repository.ApiResult
+import com.glucode.gautimes.data.repository.TrainTimesRepository
 import com.glucode.gautimes.ui.theme.cartGray
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
@@ -19,9 +22,12 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
+import com.glucode.gautimes.data.repository.*
 
 @HiltViewModel
-class HomeViewmodel @Inject constructor() : ViewModel() {
+class HomeViewmodel @Inject constructor(
+    private val trainTimesRepository: TrainTimesRepository
+) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
     private val _fromLocation = MutableStateFlow("Sandton")
@@ -29,6 +35,17 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
     private val _selectedDate = MutableStateFlow(Calendar.getInstance().timeInMillis)
     private val _showLocationSheet = MutableStateFlow(false)
     private val _locationTarget = MutableStateFlow(LocationTarget.FROM)
+    private val _healthCheck = MutableStateFlow<HealthCheckState>(HealthCheckState.Checking)
+    private val _stationsCheck = MutableStateFlow<StationsCheckState>(StationsCheckState.Checking)
+    private val _isProbeCachingEnabled = MutableStateFlow(true)
+
+    private val serviceProbeState = combine(
+        _healthCheck,
+        _stationsCheck,
+        _isProbeCachingEnabled
+    ) { healthCheck, stationsCheck, isCachingEnabled ->
+        ServiceProbeState(healthCheck, stationsCheck, isCachingEnabled)
+    }
 
     private val selectionState = combine(
         _fromLocation,
@@ -42,8 +59,9 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
         _isLoading,
         selectionState,
         _showLocationSheet,
-        _locationTarget
-    ) { isLoading, selection, showSheet, target ->
+        _locationTarget,
+        serviceProbeState
+    ) { isLoading, selection, showSheet, target, serviceProbe ->
         if (isLoading) {
             HomeState.Loading
         } else {
@@ -57,6 +75,9 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
                         title = "Coming up next",
                         description = "Peak fares will be in-affect until 18:45 tonight"
                     ),
+                    healthCheck = serviceProbe.healthCheck,
+                    stationsCheck = serviceProbe.stationsCheck,
+                    isProbeCachingEnabled = serviceProbe.isCachingEnabled,
                     progress = ProgressCardData(
                         progressTitleTime = "20 min",
                         progressDescription = "until arrive"
@@ -74,6 +95,10 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
 
     init {
         loadData()
+        if (BuildConfig.DEBUG) {
+            refreshHealth()
+            refreshStations()
+        }
     }
 
     fun loadData() {
@@ -83,6 +108,41 @@ class HomeViewmodel @Inject constructor() : ViewModel() {
             _isLoading.value = false
         }
     }
+
+    fun refreshHealth() {
+        viewModelScope.launch {
+            _healthCheck.value = HealthCheckState.Checking
+            _healthCheck.value = when (val result =
+                trainTimesRepository.getHealth(forceNetwork = shouldForceNetwork())) {
+                is ApiResult.Success -> HealthCheckState.Online(result.value.meta.asOf)
+                is ApiResult.Failure -> HealthCheckState.Offline(result.error.toDisplayMessage())
+            }
+        }
+    }
+
+    fun refreshStations() {
+        viewModelScope.launch {
+            _stationsCheck.value = StationsCheckState.Checking
+            _stationsCheck.value = when (val result =
+                trainTimesRepository.getStations(forceNetwork = shouldForceNetwork())) {
+                is ApiResult.Success -> StationsCheckState.Loaded(
+                    count = result.value.data.stations.size,
+                    asOf = result.value.meta.asOf
+                )
+
+                is ApiResult.Failure -> StationsCheckState.Failed(result.error.toDisplayMessage())
+            }
+        }
+    }
+
+    fun toggleProbeCaching() {
+        _isProbeCachingEnabled.value = !_isProbeCachingEnabled.value
+        refreshHealth()
+        refreshStations()
+    }
+
+    private fun shouldForceNetwork(): Boolean =
+        BuildConfig.DEBUG && !_isProbeCachingEnabled.value
 
     fun updateFromLocation(location: String) {
         _fromLocation.value = location
@@ -131,12 +191,21 @@ data class SelectionState(
     val dateMillis: Long
 )
 
+data class ServiceProbeState(
+    val healthCheck: HealthCheckState,
+    val stationsCheck: StationsCheckState,
+    val isCachingEnabled: Boolean
+)
+
 data class HomeData(
     val fromLocation: String = "",
     val toLocation: String = "",
     val dateLabel: String = "Today",
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
     val infoText: HomeInfoText = HomeInfoText(),
+    val healthCheck: HealthCheckState = HealthCheckState.Checking,
+    val stationsCheck: StationsCheckState = StationsCheckState.Checking,
+    val isProbeCachingEnabled: Boolean = true,
     val progress: ProgressCardData = ProgressCardData(),
     val locationSection: LocationSelectorBottomSheetData = LocationSelectorBottomSheetData(locations = locations),
     val showLocationSheet: Boolean = false,
@@ -149,11 +218,32 @@ enum class LocationTarget(val label: String) {
 
 data class HomeInfoText(val title: String = "", val description: String = "")
 
+sealed class HealthCheckState {
+    data object Checking : HealthCheckState()
+    data class Online(val asOf: String) : HealthCheckState()
+    data class Offline(val reason: String) : HealthCheckState()
+}
+
+sealed class StationsCheckState {
+    data object Checking : StationsCheckState()
+    data class Loaded(val count: Int, val asOf: String) : StationsCheckState()
+    data class Failed(val reason: String) : StationsCheckState()
+}
+
 sealed class HomeState {
     object Loading : HomeState()
     data class Error(val message: String) : HomeState()
     data class HasData(val data: HomeData) : HomeState()
 }
+
+private fun ApiError.toDisplayMessage(): String =
+    when (this) {
+        is ApiError.Problem -> problem.detail
+        is ApiError.Http -> message.ifBlank { "HTTP $code" }
+        is ApiError.Network -> message
+        is ApiError.Serialization -> message
+        ApiError.EmptyBody -> "The health response was empty."
+    }
 
 private val times = listOf(
     ScheduleTimeLineItemData(timeText = "06:15", cartColor = cartYellow, cartNumber = 4),

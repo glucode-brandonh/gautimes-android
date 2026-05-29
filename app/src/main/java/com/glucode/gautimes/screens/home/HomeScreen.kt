@@ -3,6 +3,8 @@ package com.glucode.gautimes.screens.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,7 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.LocationSelectorBottomSheet
 import com.glucode.gautimes.components.LocationTargetSection
 import com.glucode.gautimes.components.ProgressCard
@@ -56,7 +62,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltVie
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -66,19 +72,39 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        AssistChip(onClick = { showDatePicker = true }, label = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
-                    contentDescription = "Calendar"
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AssistChip(onClick = { showDatePicker = true }, label = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CalendarMonth,
+                        contentDescription = "Calendar"
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(data.dateLabel, style = MaterialTheme.typography.titleMedium)
+                }
+            })
+            if (BuildConfig.DEBUG) {
+                HealthStatusChip(
+                    healthCheck = data.healthCheck,
+                    onClick = viewmodel::refreshHealth
                 )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(data.dateLabel, style = MaterialTheme.typography.titleMedium)
+                StationsStatusChip(
+                    stationsCheck = data.stationsCheck,
+                    onClick = viewmodel::refreshStations
+                )
+                CacheModeChip(
+                    isCachingEnabled = data.isProbeCachingEnabled,
+                    onClick = viewmodel::toggleProbeCaching
+                )
             }
-        })
+        }
 
         LocationSection(
             fromLocation = data.fromLocation,
@@ -121,6 +147,80 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
             )
         }
     }
+}
+
+@Composable
+fun HealthStatusChip(
+    healthCheck: HealthCheckState,
+    onClick: () -> Unit
+) {
+    val (icon, label) = when (healthCheck) {
+        HealthCheckState.Checking -> Icons.Default.Sync to "API: checking"
+        is HealthCheckState.Online -> Icons.Default.CloudDone to "API: online"
+        is HealthCheckState.Offline -> Icons.Default.CloudOff to "API: offline"
+    }
+
+    AssistChip(onClick = onClick, label = {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(label, style = MaterialTheme.typography.titleMedium)
+        }
+    })
+}
+
+@Composable
+fun StationsStatusChip(
+    stationsCheck: StationsCheckState,
+    onClick: () -> Unit
+) {
+    val (icon, label) = when (stationsCheck) {
+        StationsCheckState.Checking -> Icons.Default.Sync to "Stations: checking"
+        is StationsCheckState.Loaded -> Icons.Default.CloudDone to "Stations: ${stationsCheck.count}"
+        is StationsCheckState.Failed -> Icons.Default.CloudOff to "Stations: offline"
+    }
+
+    AssistChip(onClick = onClick, label = {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(label, style = MaterialTheme.typography.titleMedium)
+        }
+    })
+}
+
+@Composable
+fun CacheModeChip(
+    isCachingEnabled: Boolean,
+    onClick: () -> Unit
+) {
+    val label = if (isCachingEnabled) "Cache: on" else "Cache: off"
+
+    AssistChip(onClick = onClick, label = {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = Icons.Default.Sync,
+                contentDescription = label
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(label, style = MaterialTheme.typography.titleMedium)
+        }
+    })
 }
 
 @Composable
