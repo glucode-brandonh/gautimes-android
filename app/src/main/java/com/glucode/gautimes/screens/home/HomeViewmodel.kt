@@ -25,7 +25,8 @@ import kotlin.time.Duration.Companion.seconds
 @HiltViewModel
 class HomeViewmodel @Inject constructor(
     private val healthRepository: HealthRepository,
-    private val stationsRepository: StationsRepository
+    private val stationsRepository: StationsRepository,
+    private val journeysRepository: JourneysRepository
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
@@ -36,6 +37,7 @@ class HomeViewmodel @Inject constructor(
     private val _locationTarget = MutableStateFlow(LocationTarget.FROM)
     private val _healthCheck = MutableStateFlow<HealthCheckState>(HealthCheckState.Checking)
     private val _stationsCheck = MutableStateFlow<StationsCheckState>(StationsCheckState.Checking)
+    private val _journeysCheck = MutableStateFlow<JourneysCheckState>(JourneysCheckState.Idle)
     private val _isProbeCachingEnabled = MutableStateFlow(true)
 
     private val stations = stationsRepository.getStationsStream()
@@ -48,9 +50,10 @@ class HomeViewmodel @Inject constructor(
     private val serviceProbeState = combine(
         _healthCheck,
         _stationsCheck,
+        _journeysCheck,
         _isProbeCachingEnabled
-    ) { healthCheck, stationsCheck, isCachingEnabled ->
-        ServiceProbeState(healthCheck, stationsCheck, isCachingEnabled)
+    ) { healthCheck, stationsCheck, journeysCheck, isCachingEnabled ->
+        ServiceProbeState(healthCheck, stationsCheck, journeysCheck, isCachingEnabled)
     }
 
     private val selectionState = combine(
@@ -91,6 +94,7 @@ class HomeViewmodel @Inject constructor(
                     ),
                     healthCheck = serviceProbe.healthCheck,
                     stationsCheck = serviceProbe.stationsCheck,
+                    journeysCheck = serviceProbe.journeysCheck,
                     isProbeCachingEnabled = serviceProbe.isCachingEnabled,
                     progress = ProgressCardData(
                         progressTitleTime = "20 min",
@@ -154,10 +158,32 @@ class HomeViewmodel @Inject constructor(
         }
     }
 
+    fun refreshJourneys() {
+        viewModelScope.launch {
+            _journeysCheck.value = JourneysCheckState.Checking
+            _journeysCheck.value = when (val result =
+                journeysRepository.getJourneys(
+                    from = _fromLocation.value,
+                    to = _toLocation.value,
+                    forceRefresh = shouldForceNetwork()
+                )) {
+                is ApiResult.Success -> JourneysCheckState.Loaded(
+                    count = result.value.data.journeys.size,
+                    asOf = result.value.meta.asOf
+                )
+
+                is ApiResult.Failure -> JourneysCheckState.Failed(result.error.toDisplayMessage())
+            }
+        }
+    }
+
     fun toggleProbeCaching() {
         _isProbeCachingEnabled.value = !_isProbeCachingEnabled.value
         refreshHealth()
         refreshStations()
+        if (_journeysCheck.value !is JourneysCheckState.Idle) {
+            refreshJourneys()
+        }
     }
 
     private fun shouldForceNetwork(): Boolean =
@@ -219,6 +245,7 @@ data class LocationSheetState(
 data class ServiceProbeState(
     val healthCheck: HealthCheckState,
     val stationsCheck: StationsCheckState,
+    val journeysCheck: JourneysCheckState,
     val isCachingEnabled: Boolean
 )
 
@@ -230,6 +257,7 @@ data class HomeData(
     val infoText: HomeInfoText = HomeInfoText(),
     val healthCheck: HealthCheckState = HealthCheckState.Checking,
     val stationsCheck: StationsCheckState = StationsCheckState.Checking,
+    val journeysCheck: JourneysCheckState = JourneysCheckState.Idle,
     val isProbeCachingEnabled: Boolean = true,
     val progress: ProgressCardData = ProgressCardData(),
     val locationSection: LocationSelectorBottomSheetData = LocationSelectorBottomSheetData(locations = locations),
@@ -253,6 +281,13 @@ sealed class StationsCheckState {
     data object Checking : StationsCheckState()
     data class Loaded(val count: Int, val asOf: String) : StationsCheckState()
     data class Failed(val reason: String) : StationsCheckState()
+}
+
+sealed class JourneysCheckState {
+    data object Idle : JourneysCheckState()
+    data object Checking : JourneysCheckState()
+    data class Loaded(val count: Int, val asOf: String) : JourneysCheckState()
+    data class Failed(val reason: String) : JourneysCheckState()
 }
 
 sealed class HomeState {

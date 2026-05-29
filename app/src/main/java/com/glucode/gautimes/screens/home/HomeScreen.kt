@@ -99,6 +99,10 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                     stationsCheck = data.stationsCheck,
                     onClick = viewmodel::refreshStations
                 )
+                JourneysStatusChip(
+                    journeysCheck = data.journeysCheck,
+                    onClick = viewmodel::refreshJourneys
+                )
                 CacheModeChip(
                     isCachingEnabled = data.isProbeCachingEnabled,
                     onClick = viewmodel::toggleProbeCaching
@@ -184,6 +188,33 @@ fun StationsStatusChip(
         StationsCheckState.Checking -> Icons.Default.Sync to "Stations: checking"
         is StationsCheckState.Loaded -> Icons.Default.CloudDone to "Stations: ${stationsCheck.count}"
         is StationsCheckState.Failed -> Icons.Default.CloudOff to "Stations: offline"
+    }
+
+    AssistChip(onClick = onClick, label = {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(label, style = MaterialTheme.typography.titleMedium)
+        }
+    })
+}
+
+@Composable
+fun JourneysStatusChip(
+    journeysCheck: JourneysCheckState,
+    onClick: () -> Unit
+) {
+    val (icon, label) = when (journeysCheck) {
+        JourneysCheckState.Idle -> Icons.Default.Sync to "Journeys: idle"
+        JourneysCheckState.Checking -> Icons.Default.Sync to "Journeys: checking"
+        is JourneysCheckState.Loaded -> Icons.Default.CloudDone to "Journeys: ${journeysCheck.count}"
+        is JourneysCheckState.Failed -> Icons.Default.CloudOff to "Journeys: offline"
     }
 
     AssistChip(onClick = onClick, label = {

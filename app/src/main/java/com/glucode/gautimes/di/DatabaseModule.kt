@@ -3,6 +3,7 @@ package com.glucode.gautimes.di
 import android.content.Context
 import androidx.room.Room
 import com.glucode.gautimes.data.local.GautimesDatabase
+import com.glucode.gautimes.data.local.dao.JourneyDao
 import com.glucode.gautimes.data.local.dao.StationDao
 import dagger.Module
 import dagger.Provides
@@ -26,4 +27,8 @@ object DatabaseModule {
     @Provides
     fun provideStationDao(database: GautimesDatabase): StationDao =
         database.stationDao()
+
+    @Provides
+    fun provideJourneyDao(database: GautimesDatabase): JourneyDao =
+        database.journeyDao()
 }
