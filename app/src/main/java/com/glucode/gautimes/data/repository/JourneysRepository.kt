@@ -7,11 +7,14 @@ import com.glucode.gautimes.data.local.entities.JourneyQueryMetadataEntity
 import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 import com.glucode.gautimes.data.remote.TrainTimesApi
 import com.glucode.gautimes.data.remote.dto.*
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.minutes
 
 interface JourneysRepository {
+    fun getJourneysStream(from: String, to: String): Flow<List<JourneyWithLegs>>
+
     suspend fun getJourneys(
         from: String,
         to: String,
@@ -26,6 +29,9 @@ class DefaultJourneysRepository @Inject constructor(
     private val journeyDao: JourneyDao,
     json: Json
 ) : BaseRepository(json), JourneysRepository {
+
+    override fun getJourneysStream(from: String, to: String): Flow<List<JourneyWithLegs>> =
+        journeyDao.getJourneysStreamForRoute(from, to)
 
     override suspend fun getJourneys(
         from: String,

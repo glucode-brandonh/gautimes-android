@@ -7,6 +7,8 @@ import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
 import com.glucode.gautimes.data.repository.*
+import com.glucode.gautimes.data.local.entities.JourneyWithLegs
+import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.ui.theme.cartGray
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -47,6 +50,23 @@ class HomeViewmodel @Inject constructor(
             initialValue = emptyList()
         )
 
+    private val selectionState = combine(
+        _fromLocation,
+        _toLocation,
+        _selectedDate
+    ) { from, to, date ->
+        SelectionState(from, to, date)
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val journeys = selectionState.flatMapLatest { selection ->
+        journeysRepository.getJourneysStream(selection.from, selection.to)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
     private val serviceProbeState = combine(
         _healthCheck,
         _stationsCheck,
@@ -56,14 +76,6 @@ class HomeViewmodel @Inject constructor(
         ServiceProbeState(healthCheck, stationsCheck, journeysCheck, isCachingEnabled)
     }
 
-    private val selectionState = combine(
-        _fromLocation,
-        _toLocation,
-        _selectedDate
-    ) { from, to, date ->
-        SelectionState(from, to, date)
-    }
-
     private val locationSheetState = combine(
         _showLocationSheet,
         _locationTarget
@@ -71,23 +83,51 @@ class HomeViewmodel @Inject constructor(
         LocationSheetState(show, target)
     }
 
+    private val userInteractionState = combine(
+        selectionState,
+        locationSheetState
+    ) { selection, locationSheet ->
+        UserInteractionState(selection, locationSheet)
+    }
+
+    private val dataState = combine(
+        serviceProbeState,
+        stations,
+        journeys
+    ) { serviceProbe, stations, journeys ->
+        DataState(serviceProbe, stations, journeys)
+    }
+
     val uiState: StateFlow<HomeState> = combine(
         _isLoading,
-        selectionState,
-        locationSheetState,
-        serviceProbeState,
-        stations
-    ) { isLoading, selection, locationSheet, serviceProbe, stations ->
+        userInteractionState,
+        dataState
+    ) { isLoading, userInteraction, data ->
         if (isLoading) {
             HomeState.Loading
         } else {
+            val selection = userInteraction.selection
+            val locationSheet = userInteraction.locationSheet
+            val serviceProbe = data.serviceProbe
+            val stations = data.stations
+            val journeys = data.journeys
+
             val stationNames = stations.map { it.name }.ifEmpty { locations }
+            val scheduleTimes = journeys.map { journey ->
+                val firstLeg = journey.legs.firstOrNull()
+                ScheduleTimeLineItemData(
+                    timeText = formatTime(journey.journey.departureTime),
+                    cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
+                    cartNumber = firstLeg?.carriages ?: 4
+                )
+            }.ifEmpty { times }
+
             HomeState.HasData(
                 data = HomeData(
                     fromLocation = selection.from,
                     toLocation = selection.to,
                     dateLabel = DateUtils.formatDateLabel(selection.dateMillis),
-                    scheduleTimes = times,
+                    scheduleTimes = scheduleTimes,
                     infoText = HomeInfoText(
                         title = "Coming up next",
                         description = "Peak fares will be in-affect until 18:45 tonight"
@@ -120,8 +160,9 @@ class HomeViewmodel @Inject constructor(
         loadData()
         if (BuildConfig.DEBUG) {
             refreshHealth()
-            refreshStations()
         }
+        refreshStations()
+        refreshJourneys()
     }
 
     fun loadData() {
@@ -191,16 +232,19 @@ class HomeViewmodel @Inject constructor(
 
     fun updateFromLocation(location: String) {
         _fromLocation.value = location
+        refreshJourneys()
     }
 
     fun updateToLocation(location: String) {
         _toLocation.value = location
+        refreshJourneys()
     }
 
     fun flipLocations() {
         val temp = _fromLocation.value
         _fromLocation.value = _toLocation.value
         _toLocation.value = temp
+        refreshJourneys()
     }
 
     fun updateDate(millis: Long?) {
@@ -240,6 +284,17 @@ data class SelectionState(
 data class LocationSheetState(
     val show: Boolean,
     val target: LocationTarget
+)
+
+data class UserInteractionState(
+    val selection: SelectionState,
+    val locationSheet: LocationSheetState
+)
+
+data class DataState(
+    val serviceProbe: ServiceProbeState,
+    val stations: List<StationEntity>,
+    val journeys: List<JourneyWithLegs>
 )
 
 data class ServiceProbeState(
@@ -304,6 +359,25 @@ private fun ApiError.toDisplayMessage(): String =
         is ApiError.Serialization -> message
         ApiError.EmptyBody -> "The health response was empty."
     }
+
+private fun formatTime(isoTime: String): String {
+    return try {
+        // Simple extraction of HH:mm from "YYYY-MM-DDTHH:mm:ss" or similar
+        val timePart = isoTime.substringAfter('T').substringBefore(':')
+        val minutePart = isoTime.substringAfter('T').substringAfter(':').substringBefore(':')
+        "$timePart:$minutePart"
+    } catch (e: Exception) {
+        "00:00"
+    }
+}
+
+private fun String.toColor(): androidx.compose.ui.graphics.Color {
+    return try {
+        androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(this))
+    } catch (e: Exception) {
+        androidx.compose.ui.graphics.Color.Gray
+    }
+}
 
 private val times = listOf(
     ScheduleTimeLineItemData(timeText = "06:15", cartColor = cartYellow, cartNumber = 4),

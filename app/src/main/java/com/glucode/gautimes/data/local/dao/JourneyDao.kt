@@ -16,6 +16,10 @@ interface JourneyDao {
     @Query("SELECT * FROM journeys WHERE fromStationId = :from AND toStationId = :to")
     suspend fun getJourneysForRoute(from: String, to: String): List<JourneyWithLegs>
 
+    @Transaction
+    @Query("SELECT * FROM journeys WHERE fromStationId = :from AND toStationId = :to")
+    fun getJourneysStreamForRoute(from: String, to: String): kotlinx.coroutines.flow.Flow<List<JourneyWithLegs>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertJourneys(journeys: List<JourneyEntity>)
 
