@@ -1,32 +1,6 @@
 package com.glucode.gautimes.data.repository
 
-import com.glucode.gautimes.data.local.entities.StationEntity
-import com.glucode.gautimes.data.remote.dto.ApiEnvelopeDto
-import com.glucode.gautimes.data.remote.dto.HealthDataDto
-import com.glucode.gautimes.data.remote.dto.HealthMetaDto
-import com.glucode.gautimes.data.remote.dto.JourneysDataDto
-import com.glucode.gautimes.data.remote.dto.JourneysMetaDto
 import com.glucode.gautimes.data.remote.dto.ProblemDetailDto
-import kotlinx.coroutines.flow.Flow
-
-interface TrainTimesRepository {
-    suspend fun getHealth(
-        forceNetwork: Boolean = false
-    ): ApiResult<ApiEnvelopeDto<HealthDataDto, HealthMetaDto>>
-
-    fun getStationsStream(): Flow<List<StationEntity>>
-
-    suspend fun refreshStations(
-        forceNetwork: Boolean = false
-    ): ApiResult<Unit>
-
-    suspend fun getJourneys(
-        from: String,
-        to: String,
-        after: String? = null,
-        includePolylines: Boolean = false
-    ): ApiResult<ApiEnvelopeDto<JourneysDataDto, JourneysMetaDto>>
-}
 
 sealed interface ApiResult<out T> {
     data class Success<T>(

@@ -4,8 +4,7 @@ import android.app.Application
 import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.data.remote.ApiKeyInterceptor
 import com.glucode.gautimes.data.remote.TrainTimesApi
-import com.glucode.gautimes.data.repository.DefaultTrainTimesRepository
-import com.glucode.gautimes.data.repository.TrainTimesRepository
+import com.glucode.gautimes.data.repository.*
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -28,9 +27,21 @@ import javax.inject.Singleton
 abstract class RepositoryModule {
     @Binds
     @Singleton
-    abstract fun bindTrainTimesRepository(
-        repository: DefaultTrainTimesRepository
-    ): TrainTimesRepository
+    abstract fun bindHealthRepository(
+        repository: DefaultHealthRepository
+    ): HealthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStationsRepository(
+        repository: DefaultStationsRepository
+    ): StationsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindJourneysRepository(
+        repository: DefaultJourneysRepository
+    ): JourneysRepository
 }
 
 @Module

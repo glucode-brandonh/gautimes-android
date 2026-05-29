@@ -6,9 +6,7 @@ import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
-import com.glucode.gautimes.data.repository.ApiError
-import com.glucode.gautimes.data.repository.ApiResult
-import com.glucode.gautimes.data.repository.TrainTimesRepository
+import com.glucode.gautimes.data.repository.*
 import com.glucode.gautimes.ui.theme.cartGray
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
@@ -26,7 +24,8 @@ import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class HomeViewmodel @Inject constructor(
-    private val trainTimesRepository: TrainTimesRepository
+    private val healthRepository: HealthRepository,
+    private val stationsRepository: StationsRepository
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
@@ -39,7 +38,7 @@ class HomeViewmodel @Inject constructor(
     private val _stationsCheck = MutableStateFlow<StationsCheckState>(StationsCheckState.Checking)
     private val _isProbeCachingEnabled = MutableStateFlow(true)
 
-    private val stations = trainTimesRepository.getStationsStream()
+    private val stations = stationsRepository.getStationsStream()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -133,7 +132,7 @@ class HomeViewmodel @Inject constructor(
         viewModelScope.launch {
             _healthCheck.value = HealthCheckState.Checking
             _healthCheck.value = when (val result =
-                trainTimesRepository.getHealth(forceNetwork = shouldForceNetwork())) {
+                healthRepository.getHealth(forceNetwork = shouldForceNetwork())) {
                 is ApiResult.Success -> HealthCheckState.Online(result.value.meta.asOf)
                 is ApiResult.Failure -> HealthCheckState.Offline(result.error.toDisplayMessage())
             }
@@ -144,7 +143,7 @@ class HomeViewmodel @Inject constructor(
         viewModelScope.launch {
             _stationsCheck.value = StationsCheckState.Checking
             _stationsCheck.value = when (val result =
-                trainTimesRepository.refreshStations(forceNetwork = shouldForceNetwork())) {
+                stationsRepository.refreshStations(forceNetwork = shouldForceNetwork())) {
                 is ApiResult.Success -> StationsCheckState.Loaded(
                     count = stations.value.size,
                     asOf = "Just now" // Simplified for now
