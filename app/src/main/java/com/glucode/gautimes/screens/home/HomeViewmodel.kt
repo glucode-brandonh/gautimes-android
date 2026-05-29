@@ -6,6 +6,7 @@ import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
+import com.glucode.gautimes.data.repository.ApiError
 import com.glucode.gautimes.data.repository.ApiResult
 import com.glucode.gautimes.data.repository.TrainTimesRepository
 import com.glucode.gautimes.ui.theme.cartGray
@@ -22,7 +23,6 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
-import com.glucode.gautimes.data.repository.*
 
 @HiltViewModel
 class HomeViewmodel @Inject constructor(
@@ -38,6 +38,13 @@ class HomeViewmodel @Inject constructor(
     private val _healthCheck = MutableStateFlow<HealthCheckState>(HealthCheckState.Checking)
     private val _stationsCheck = MutableStateFlow<StationsCheckState>(StationsCheckState.Checking)
     private val _isProbeCachingEnabled = MutableStateFlow(true)
+
+    private val stations = trainTimesRepository.getStationsStream()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     private val serviceProbeState = combine(
         _healthCheck,
@@ -55,16 +62,24 @@ class HomeViewmodel @Inject constructor(
         SelectionState(from, to, date)
     }
 
+    private val locationSheetState = combine(
+        _showLocationSheet,
+        _locationTarget
+    ) { show, target ->
+        LocationSheetState(show, target)
+    }
+
     val uiState: StateFlow<HomeState> = combine(
         _isLoading,
         selectionState,
-        _showLocationSheet,
-        _locationTarget,
-        serviceProbeState
-    ) { isLoading, selection, showSheet, target, serviceProbe ->
+        locationSheetState,
+        serviceProbeState,
+        stations
+    ) { isLoading, selection, locationSheet, serviceProbe, stations ->
         if (isLoading) {
             HomeState.Loading
         } else {
+            val stationNames = stations.map { it.name }.ifEmpty { locations }
             HomeState.HasData(
                 data = HomeData(
                     fromLocation = selection.from,
@@ -82,8 +97,13 @@ class HomeViewmodel @Inject constructor(
                         progressTitleTime = "20 min",
                         progressDescription = "until arrive"
                     ),
-                    showLocationSheet = showSheet,
-                    locationSection = buildLocationSelector(target, selection.from, selection.to)
+                    showLocationSheet = locationSheet.show,
+                    locationSection = buildLocationSelector(
+                        locationSheet.target,
+                        selection.from,
+                        selection.to,
+                        stationNames
+                    )
                 )
             )
         }
@@ -124,10 +144,10 @@ class HomeViewmodel @Inject constructor(
         viewModelScope.launch {
             _stationsCheck.value = StationsCheckState.Checking
             _stationsCheck.value = when (val result =
-                trainTimesRepository.getStations(forceNetwork = shouldForceNetwork())) {
+                trainTimesRepository.refreshStations(forceNetwork = shouldForceNetwork())) {
                 is ApiResult.Success -> StationsCheckState.Loaded(
-                    count = result.value.data.stations.size,
-                    asOf = result.value.meta.asOf
+                    count = stations.value.size,
+                    asOf = "Just now" // Simplified for now
                 )
 
                 is ApiResult.Failure -> StationsCheckState.Failed(result.error.toDisplayMessage())
@@ -167,12 +187,13 @@ class HomeViewmodel @Inject constructor(
     fun buildLocationSelector(
         target: LocationTarget,
         fromLocation: String,
-        toLocation: String
+        toLocation: String,
+        availableLocations: List<String> = locations
     ): LocationSelectorBottomSheetData {
         val selected = if (target == LocationTarget.FROM) fromLocation else toLocation
         val disabled = if (target == LocationTarget.FROM) toLocation else fromLocation
         return LocationSelectorBottomSheetData(
-            locations = locations,
+            locations = availableLocations,
             selectedLocation = selected,
             disabledLocation = disabled,
             locationTarget = target
@@ -189,6 +210,11 @@ data class SelectionState(
     val from: String,
     val to: String,
     val dateMillis: Long
+)
+
+data class LocationSheetState(
+    val show: Boolean,
+    val target: LocationTarget
 )
 
 data class ServiceProbeState(

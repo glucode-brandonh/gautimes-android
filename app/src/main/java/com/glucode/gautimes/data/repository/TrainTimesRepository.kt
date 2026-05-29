@@ -1,22 +1,24 @@
 package com.glucode.gautimes.data.repository
 
+import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.data.remote.dto.ApiEnvelopeDto
 import com.glucode.gautimes.data.remote.dto.HealthDataDto
 import com.glucode.gautimes.data.remote.dto.HealthMetaDto
 import com.glucode.gautimes.data.remote.dto.JourneysDataDto
 import com.glucode.gautimes.data.remote.dto.JourneysMetaDto
 import com.glucode.gautimes.data.remote.dto.ProblemDetailDto
-import com.glucode.gautimes.data.remote.dto.StationsDataDto
-import com.glucode.gautimes.data.remote.dto.StationsMetaDto
+import kotlinx.coroutines.flow.Flow
 
 interface TrainTimesRepository {
     suspend fun getHealth(
         forceNetwork: Boolean = false
     ): ApiResult<ApiEnvelopeDto<HealthDataDto, HealthMetaDto>>
 
-    suspend fun getStations(
+    fun getStationsStream(): Flow<List<StationEntity>>
+
+    suspend fun refreshStations(
         forceNetwork: Boolean = false
-    ): ApiResult<ApiEnvelopeDto<StationsDataDto, StationsMetaDto>>
+    ): ApiResult<Unit>
 
     suspend fun getJourneys(
         from: String,
