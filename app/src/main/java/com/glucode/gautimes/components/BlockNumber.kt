@@ -12,14 +12,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,6 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.glucode.gautimes.ui.theme.GautimesTheme
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -195,35 +194,22 @@ fun BlockNumber(
     spacing: Dp = 1.dp,
     digitSpacing: Dp = 0.dp
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(digitSpacing),
-        modifier = modifier.padding(20.dp)
-    ) {
-        number.forEachIndexed { index, char ->
-            key(index) {
-                AnimatedDigit(char, color, blockSize, spacing)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AnimatedDigit(
-    char: Char,
-    color: Color,
-    blockSize: Dp,
-    spacing: Dp
-) {
     AnimatedContent(
-        targetState = char,
+        targetState = number,
         transitionSpec = {
             fadeIn(tween(300)) togetherWith fadeOut(tween(500))
         },
-        label = "DigitAnimation"
-    ) { targetChar ->
-        Box() {
-            DigitLayer(targetChar, color.copy(alpha = 0.7f), blockSize, spacing, isBlur = true)
-            DigitLayer(targetChar, color, blockSize, spacing, isBlur = false)
+        label = "BlockNumberAnimation"
+    ) { targetNumber ->
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(digitSpacing),
+        ) {
+            targetNumber.forEach { char ->
+                Box {
+                    DigitLayer(char, color.copy(alpha = 0.7f), blockSize, spacing, isBlur = true)
+                    DigitLayer(char, color, blockSize, spacing, isBlur = false)
+                }
+            }
         }
     }
 }
@@ -267,7 +253,7 @@ private fun FallingBit(
     val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        delay(rowIndex * 40L + (0..150).random())
+        delay((rowIndex * 40L + (0..150).random()).milliseconds)
         launch {
             yOffsetPx.animateTo(0f, tween(durationMillis = 1000, easing = LinearOutSlowInEasing))
         }
@@ -292,14 +278,15 @@ private fun FallingBit(
 @Composable
 private fun BlockNumberPreview() {
     GautimesTheme {
-        var number by remember { mutableStateOf("12:34") }
+        var number by remember { mutableStateOf("9") }
         LaunchedEffect(Unit) {
             while (true) {
-                delay(1000)
-                number = if (number == "12") "12" else "13"
+                delay(2000.milliseconds)
+                number = if (number == "9") "10" else "9"
             }
         }
-        Spacer(Modifier.size(30.dp))
-        BlockNumber(number = number)
+//        Box(modifier = Modifier.padding(40.dp)) {
+            BlockNumber(number = number)
+//        }
     }
 }
