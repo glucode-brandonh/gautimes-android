@@ -11,6 +11,7 @@
 /.idea/markdown.xml
 /.idea/planningMode.xml
 /.idea/inspectionProfiles/Project_Default.xml
+/.idea/*
 .DS_Store
 /build
 /captures

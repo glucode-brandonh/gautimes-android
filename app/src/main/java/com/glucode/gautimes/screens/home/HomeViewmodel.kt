@@ -6,6 +6,7 @@ import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
+import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.data.repository.ApiResult
 import com.glucode.gautimes.data.repository.HealthRepository
@@ -16,6 +17,7 @@ import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,13 +25,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
@@ -51,6 +57,13 @@ class HomeViewmodel @Inject constructor(
     private val _isProbeCachingEnabled = MutableStateFlow(true)
     private val refreshJourneysTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
+    private val ticker: Flow<Unit> = flow {
+        while (true) {
+            emit(Unit)
+            delay(1.minutes)
+        }
+    }
+
     private val stations = stationsRepository.getStationsStream()
         .stateIn(
             scope = viewModelScope,
@@ -66,7 +79,10 @@ class HomeViewmodel @Inject constructor(
         SelectionState(from, to, date)
     }
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, kotlinx.coroutines.FlowPreview::class)
+    @OptIn(
+        kotlinx.coroutines.ExperimentalCoroutinesApi::class,
+        kotlinx.coroutines.FlowPreview::class
+    )
     private val journeys = combine(
         selectionState,
         stations,
@@ -98,7 +114,11 @@ class HomeViewmodel @Inject constructor(
     ) { healthCheck, stationsCheck, journeysResult, isCachingEnabled ->
         val journeysCheck = when (journeysResult) {
             is JourneyResult.Loading -> JourneysCheckState.Checking
-            is JourneyResult.Success -> JourneysCheckState.Loaded(journeysResult.journeys.size, "Just now")
+            is JourneyResult.Success -> JourneysCheckState.Loaded(
+                journeysResult.journeys.size,
+                "Just now"
+            )
+
             is JourneyResult.Error -> JourneysCheckState.Failed(journeysResult.message)
         }
         ServiceProbeState(healthCheck, stationsCheck, journeysCheck, isCachingEnabled)
@@ -129,8 +149,9 @@ class HomeViewmodel @Inject constructor(
     val uiState: StateFlow<HomeState> = combine(
         _isLoading,
         userInteractionState,
-        dataState
-    ) { isLoading, userInteraction, data ->
+        dataState,
+        ticker.onStart { emit(Unit) }
+    ) { isLoading, userInteraction, data, _ ->
         if (isLoading) {
             HomeState.Loading
         } else {
@@ -151,6 +172,13 @@ class HomeViewmodel @Inject constructor(
                     )
                 }
             } else emptyList()
+            
+            val nextJourney = if (journeysResult is JourneyResult.Success) {
+                val now = OffsetDateTime.now(ZoneOffset.UTC)
+                journeysResult.journeys
+                    .filter { OffsetDateTime.parse(it.journey.departureTime).isAfter(now) }
+                    .minByOrNull { it.journey.departureTime }
+            } else null
 
             HomeState.HasData(
                 data = HomeData(
@@ -167,10 +195,7 @@ class HomeViewmodel @Inject constructor(
                     stationsCheck = serviceProbe.stationsCheck,
                     journeysCheck = serviceProbe.journeysCheck,
                     isProbeCachingEnabled = serviceProbe.isCachingEnabled,
-                    progress = ProgressCardData(
-                        progressTitleTime = "20 min",
-                        progressDescription = "until arrive"
-                    ),
+                    progress = buildProgressCard(nextJourney),
                     showLocationSheet = locationSheet.show,
                     locationSection = buildLocationSelector(
                         locationSheet.target,
@@ -264,6 +289,22 @@ class HomeViewmodel @Inject constructor(
         millis?.let {
             _selectedDate.value = it
         }
+    }
+
+    fun buildProgressCard(nextJourney: JourneyWithLegs?): ProgressCardData {
+        val progress = if (nextJourney != null) {
+            val minutesUntil = DateUtils.getMinutesUntil(nextJourney.journey.departureTime)
+            ProgressCardData(
+                progressTitleTime = "$minutesUntil min",
+                progressDescription = "until next journey"
+            )
+        } else {
+            ProgressCardData(
+                progressTitleTime = "-- min",
+                progressDescription = "no more journeys"
+            )
+        }
+        return progress
     }
 
     fun buildLocationSelector(
