@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -119,7 +120,7 @@ class HomeViewmodel @Inject constructor(
             val scheduleTimes = journeys.map { journey ->
                 val firstLeg = journey.legs.firstOrNull()
                 ScheduleTimeLineItemData(
-                    timeText = formatTime(journey.journey.departureTime),
+                    timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
                     cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
                     cartNumber = firstLeg?.carriages ?: 4
                 )
@@ -203,8 +204,8 @@ class HomeViewmodel @Inject constructor(
     }
 
     fun refreshJourneys() {
+        _journeysCheck.value = JourneysCheckState.Checking
         viewModelScope.launch {
-            _journeysCheck.value = JourneysCheckState.Checking
             _journeysCheck.value = when (val result =
                 journeysRepository.getJourneys(
                     from = _fromLocation.value,
@@ -234,16 +235,19 @@ class HomeViewmodel @Inject constructor(
         BuildConfig.DEBUG && !_isProbeCachingEnabled.value
 
     fun updateFromLocation(location: String) {
+        _journeysCheck.value = JourneysCheckState.Checking
         _fromLocation.value = location
         refreshJourneys()
     }
 
     fun updateToLocation(location: String) {
+        _journeysCheck.value = JourneysCheckState.Checking
         _toLocation.value = location
         refreshJourneys()
     }
 
     fun flipLocations() {
+        _journeysCheck.value = JourneysCheckState.Checking
         val temp = _fromLocation.value
         _fromLocation.value = _toLocation.value
         _toLocation.value = temp
@@ -362,17 +366,6 @@ private fun ApiError.toDisplayMessage(): String =
         is ApiError.Serialization -> message
         ApiError.EmptyBody -> "The health response was empty."
     }
-
-private fun formatTime(isoTime: String): String {
-    return try {
-        // Simple extraction of HH:mm from "YYYY-MM-DDTHH:mm:ss" or similar
-        val timePart = isoTime.substringAfter('T').substringBefore(':')
-        val minutePart = isoTime.substringAfter('T').substringAfter(':').substringBefore(':')
-        "$timePart:$minutePart"
-    } catch (e: Exception) {
-        "00:00"
-    }
-}
 
 private fun String.toColor(): androidx.compose.ui.graphics.Color {
     return try {

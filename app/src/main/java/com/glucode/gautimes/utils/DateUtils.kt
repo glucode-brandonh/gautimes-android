@@ -1,6 +1,8 @@
 package com.glucode.gautimes.utils
 
 import java.text.SimpleDateFormat
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
 
@@ -16,6 +18,17 @@ object DateUtils {
                 SimpleDateFormat("EEEE", Locale.getDefault()).format(selectedCalendar.time)
             }
             else -> SimpleDateFormat("dd MMM", Locale.getDefault()).format(selectedCalendar.time)
+        }
+    }
+
+    fun formatIsoTime(isoTime: String): String {
+        return try {
+            val odt = OffsetDateTime.parse(isoTime)
+            val adjusted = odt.plusHours(2)
+            val formatter = DateTimeFormatter.ofPattern("HH:mm")
+            adjusted.format(formatter)
+        } catch (e: Exception) {
+            "00:00"
         }
     }
 

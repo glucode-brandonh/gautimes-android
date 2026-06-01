@@ -358,7 +358,7 @@ fun HomeScreenScheduleList(
     checkState: JourneysCheckState
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        if (checkState is JourneysCheckState.Checking) {
+        if (checkState is JourneysCheckState.Checking || (checkState is JourneysCheckState.Idle && times.isEmpty())) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
