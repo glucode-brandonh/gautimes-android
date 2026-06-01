@@ -16,7 +16,6 @@ fun LocationTargetSection(targetLabel: String, locationName: String, onClick: ()
             Text(
                 locationName,
                 style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
             )
         })
     }

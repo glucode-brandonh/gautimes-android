@@ -19,6 +19,7 @@ import com.glucode.gautimes.ui.theme.GautimesTheme
 data class ProgressCardData(
     val timeValue: String = "",
     val progressDescription: String = "",
+    val arrivalTime: String = "",
     val stops: List<String> = emptyList()
 )
 
@@ -54,6 +55,13 @@ fun ProgressCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.8f)
             )
+            if (data.arrivalTime.isNotEmpty()) {
+                Text(
+                    "Arrive at: ${data.arrivalTime}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }

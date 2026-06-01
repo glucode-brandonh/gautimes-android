@@ -298,7 +298,8 @@ class HomeViewmodel @Inject constructor(
             val minutesUntil = DateUtils.getMinutesUntil(nextJourney.journey.departureTime)
             ProgressCardData(
                 timeValue = minutesUntil.toString(),
-                progressDescription = "MINUTES UNTIL DEPARTURE"
+                progressDescription = "MINUTES UNTIL DEPARTURE",
+                arrivalTime = DateUtils.formatIsoTime(nextJourney.journey.arrivalTime)
             )
         } else {
             ProgressCardData(

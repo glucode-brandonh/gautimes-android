@@ -295,7 +295,6 @@ fun LocationSection(
             Icon(
                 imageVector = Icons.Default.SwapVert,
                 contentDescription = "Flip Locations",
-                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
