@@ -36,6 +36,15 @@ sealed interface ApiError {
     ) : ApiError
 
     data object EmptyBody : ApiError
+
+    fun toDisplayMessage(): String =
+        when (this) {
+            is Problem -> problem.detail
+            is Http -> message.ifBlank { "HTTP $code" }
+            is Network -> message
+            is Serialization -> message
+            EmptyBody -> "The response was empty."
+        }
 }
 
 data class RateLimitInfo(

@@ -4,24 +4,21 @@ import com.glucode.gautimes.data.local.dao.JourneyDao
 import com.glucode.gautimes.data.local.entities.JourneyEntity
 import com.glucode.gautimes.data.local.entities.JourneyLegEntity
 import com.glucode.gautimes.data.local.entities.JourneyQueryMetadataEntity
-import com.glucode.gautimes.data.local.entities.JourneyWithLegs
-import com.glucode.gautimes.data.remote.TrainTimesApi
+ import com.glucode.gautimes.data.remote.TrainTimesApi
 import com.glucode.gautimes.data.remote.dto.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.minutes
 
 interface JourneysRepository {
-    fun getJourneysStream(from: String, to: String): Flow<List<JourneyWithLegs>>
-
-    suspend fun getJourneys(
+    fun getJourneys(
         from: String,
         to: String,
-        after: String? = null,
-        includePolylines: Boolean = false,
         forceRefresh: Boolean = false
-    ): ApiResult<ApiEnvelopeDto<JourneysDataDto, JourneysMetaDto>>
+    ): Flow<JourneyResult>
 }
 
 class DefaultJourneysRepository @Inject constructor(
@@ -30,43 +27,38 @@ class DefaultJourneysRepository @Inject constructor(
     json: Json
 ) : BaseRepository(json), JourneysRepository {
 
-    override fun getJourneysStream(from: String, to: String): Flow<List<JourneyWithLegs>> =
-        journeyDao.getJourneysStreamForRoute(from, to)
+    override fun getJourneys(from: String, to: String, forceRefresh: Boolean): Flow<JourneyResult> = channelFlow {
+        send(JourneyResult.Loading)
 
-    override suspend fun getJourneys(
-        from: String,
-        to: String,
-        after: String?,
-        includePolylines: Boolean,
-        forceRefresh: Boolean
-    ): ApiResult<ApiEnvelopeDto<JourneysDataDto, JourneysMetaDto>> {
-        if (!forceRefresh) {
-            val metadata = journeyDao.getMetadataForRoute(from, to)
-            if (metadata != null && isCacheFresh(metadata.lastUpdatedMillis)) {
-                val cachedJourneys = journeyDao.getJourneysForRoute(from, to)
-                if (cachedJourneys.isNotEmpty()) {
-                    return ApiResult.Success(
-                        value = cachedJourneys.toEnvelopeDto(from, to),
-                        rateLimit = RateLimitInfo(null, null, null)
+        val metadata = journeyDao.getMetadataForRoute(from, to)
+        val isFresh = metadata != null && isCacheFresh(metadata.lastUpdatedMillis)
+
+        if (forceRefresh || !isFresh) {
+            launch {
+                val result = execute {
+                    api.getJourneys(
+                        from = from,
+                        to = to,
+                        after = null,
+                        include = null
                     )
+                }
+                if (result is ApiResult.Failure) {
+                    send(JourneyResult.Error(result.error.toDisplayMessage()))
+                } else if (result is ApiResult.Success) {
+                    saveToCache(from, to, result.value.data)
                 }
             }
         }
 
-        val result = execute {
-            api.getJourneys(
-                from = from,
-                to = to,
-                after = after,
-                include = if (includePolylines) "polylines" else null
-            )
+        journeyDao.getJourneysStreamForRoute(from, to).collect { journeys ->
+            if (journeys.isNotEmpty()) {
+                send(JourneyResult.Success(journeys))
+            } else if (isFresh) {
+                send(JourneyResult.Success(emptyList()))
+            }
+            // If empty and not fresh, we wait for the network fetch launched above to update the DB
         }
-
-        if (result is ApiResult.Success) {
-            saveToCache(from, to, result.value.data)
-        }
-
-        return result
     }
 
     private fun isCacheFresh(lastUpdatedMillis: Long): Boolean {
@@ -83,51 +75,6 @@ class DefaultJourneysRepository @Inject constructor(
 
         journeyDao.updateJourneysForRoute(from, to, journeyEntities, legEntities, metadata)
     }
-
-    private fun List<JourneyWithLegs>.toEnvelopeDto(from: String, to: String): ApiEnvelopeDto<JourneysDataDto, JourneysMetaDto> {
-        val journeys = map { it.asDto() }
-        return ApiEnvelopeDto(
-            data = JourneysDataDto(journeys),
-            meta = JourneysMetaDto(
-                count = journeys.size,
-                from = from,
-                to = to,
-                asOf = "Cached", // Or format the timestamp
-                cache = CacheDto("HIT", "", 0, 0)
-            )
-        )
-    }
-
-    private fun JourneyWithLegs.asDto() = JourneyDto(
-        id = journey.id,
-        departureTime = journey.departureTime,
-        arrivalTime = journey.arrivalTime,
-        durationSeconds = journey.durationSeconds,
-        distanceMetres = journey.distanceMetres,
-        totalFareZar = journey.totalFareZar,
-        parkingCostZar = journey.parkingCostZar,
-        legs = legs.map { it.asDto() }
-    )
-
-    private fun JourneyLegEntity.asDto() = JourneyLegDto(
-        id = id,
-        mode = mode,
-        lineName = lineName,
-        lineColour = lineColour,
-        departureStop = departureStop,
-        arrivalStop = arrivalStop,
-        departureTime = departureTime,
-        arrivalTime = arrivalTime,
-        durationSeconds = durationSeconds,
-        distanceMetres = distanceMetres,
-        headsign = headsign,
-        carriages = carriages,
-        fareAmountZar = fareAmountZar,
-        fareIsPeak = fareIsPeak,
-        fareProduct = fareProduct,
-        tripId = tripId,
-        polyline = emptyList() // Ignored as per request
-    )
 
     private fun JourneyDto.asEntity(from: String, to: String) = JourneyEntity(
         id = id,

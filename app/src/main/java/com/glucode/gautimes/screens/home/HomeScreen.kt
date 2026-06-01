@@ -46,6 +46,7 @@ import com.glucode.gautimes.components.LocationTargetSection
 import com.glucode.gautimes.components.ProgressCard
 import com.glucode.gautimes.components.ScheduleTimeLineItem
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
+import com.glucode.gautimes.data.repository.JourneyResult
 import java.util.Calendar
 import java.util.TimeZone
 
@@ -130,7 +131,7 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
         Spacer(modifier = Modifier.size(8.dp))
         HomeScreenScheduleList(
             times = data.scheduleTimes,
-            checkState = data.journeysCheck
+            journeyResult = data.journeyResult
         )
 
         if (showDatePicker) {
@@ -355,39 +356,66 @@ fun DatePickerModal(
 fun HomeScreenScheduleList(
     modifier: Modifier = Modifier,
     times: List<ScheduleTimeLineItemData>,
-    checkState: JourneysCheckState
+    journeyResult: JourneyResult
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        if (checkState is JourneysCheckState.Checking || (checkState is JourneysCheckState.Idle && times.isEmpty())) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when (journeyResult) {
+            is JourneyResult.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        } else if (times.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CloudOff,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(
-                    "No schedule found",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(times.size) { index ->
-                    ScheduleTimeLineItem(
-                        data = times[index]
+
+            is JourneyResult.Error -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudOff,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        journeyResult.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            is JourneyResult.Success -> {
+                if (times.isEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(
+                            "No schedule found",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(times.size) { index ->
+                            ScheduleTimeLineItem(
+                                data = times[index]
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                        }
+                    }
                 }
             }
         }

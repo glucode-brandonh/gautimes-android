@@ -6,27 +6,29 @@ import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ProgressCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
-import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 import com.glucode.gautimes.data.local.entities.StationEntity
-import com.glucode.gautimes.data.repository.ApiError
 import com.glucode.gautimes.data.repository.ApiResult
 import com.glucode.gautimes.data.repository.HealthRepository
+import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.data.repository.JourneysRepository
 import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
@@ -46,6 +48,7 @@ class HomeViewmodel @Inject constructor(
     private val _stationsCheck = MutableStateFlow<StationsCheckState>(StationsCheckState.Checking)
     private val _journeysCheck = MutableStateFlow<JourneysCheckState>(JourneysCheckState.Idle)
     private val _isProbeCachingEnabled = MutableStateFlow(true)
+    private val refreshJourneysTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     private val stations = stationsRepository.getStationsStream()
         .stateIn(
@@ -62,21 +65,29 @@ class HomeViewmodel @Inject constructor(
         SelectionState(from, to, date)
     }
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    private val journeys = selectionState.flatMapLatest { selection ->
-        journeysRepository.getJourneysStream(selection.from, selection.to)
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, kotlinx.coroutines.FlowPreview::class)
+    private val journeys = combine(selectionState, refreshJourneysTrigger.onStart { emit(Unit) }) { selection, _ ->
+        selection
+    }.debounce(100.milliseconds)
+        .flatMapLatest { selection ->
+            journeysRepository.getJourneys(selection.from, selection.to)
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = JourneyResult.Loading
+        )
 
     private val serviceProbeState = combine(
         _healthCheck,
         _stationsCheck,
-        _journeysCheck,
+        journeys,
         _isProbeCachingEnabled
-    ) { healthCheck, stationsCheck, journeysCheck, isCachingEnabled ->
+    ) { healthCheck, stationsCheck, journeysResult, isCachingEnabled ->
+        val journeysCheck = when (journeysResult) {
+            is JourneyResult.Loading -> JourneysCheckState.Checking
+            is JourneyResult.Success -> JourneysCheckState.Loaded(journeysResult.journeys.size, "Just now")
+            is JourneyResult.Error -> JourneysCheckState.Failed(journeysResult.message)
+        }
         ServiceProbeState(healthCheck, stationsCheck, journeysCheck, isCachingEnabled)
     }
 
@@ -98,8 +109,8 @@ class HomeViewmodel @Inject constructor(
         serviceProbeState,
         stations,
         journeys
-    ) { serviceProbe, stations, journeys ->
-        DataState(serviceProbe, stations, journeys)
+    ) { serviceProbe, stations, journeysResult ->
+        DataState(serviceProbe, stations, journeysResult)
     }
 
     val uiState: StateFlow<HomeState> = combine(
@@ -114,17 +125,19 @@ class HomeViewmodel @Inject constructor(
             val locationSheet = userInteraction.locationSheet
             val serviceProbe = data.serviceProbe
             val stations = data.stations
-            val journeys = data.journeys
+            val journeysResult = data.journeysResult
 
             val stationNames = stations.map { it.name }.ifEmpty { locations }
-            val scheduleTimes = journeys.map { journey ->
-                val firstLeg = journey.legs.firstOrNull()
-                ScheduleTimeLineItemData(
-                    timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
-                    cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
-                    cartNumber = firstLeg?.carriages ?: 4
-                )
-            }
+            val scheduleTimes = if (journeysResult is JourneyResult.Success) {
+                journeysResult.journeys.map { journey ->
+                    val firstLeg = journey.legs.firstOrNull()
+                    ScheduleTimeLineItemData(
+                        timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
+                        cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
+                        cartNumber = firstLeg?.carriages ?: 4
+                    )
+                }
+            } else emptyList()
 
             HomeState.HasData(
                 data = HomeData(
@@ -132,6 +145,7 @@ class HomeViewmodel @Inject constructor(
                     toLocation = selection.to,
                     dateLabel = DateUtils.formatDateLabel(selection.dateMillis),
                     scheduleTimes = scheduleTimes,
+                    journeyResult = journeysResult,
                     infoText = HomeInfoText(
                         title = "Coming up next",
                         description = "Peak fares will be in-affect until 18:45 tonight"
@@ -204,22 +218,7 @@ class HomeViewmodel @Inject constructor(
     }
 
     fun refreshJourneys() {
-        _journeysCheck.value = JourneysCheckState.Checking
-        viewModelScope.launch {
-            _journeysCheck.value = when (val result =
-                journeysRepository.getJourneys(
-                    from = _fromLocation.value,
-                    to = _toLocation.value,
-                    forceRefresh = shouldForceNetwork()
-                )) {
-                is ApiResult.Success -> JourneysCheckState.Loaded(
-                    count = result.value.data.journeys.size,
-                    asOf = result.value.meta.asOf
-                )
-
-                is ApiResult.Failure -> JourneysCheckState.Failed(result.error.toDisplayMessage())
-            }
-        }
+        refreshJourneysTrigger.tryEmit(Unit)
     }
 
     fun toggleProbeCaching() {
@@ -235,23 +234,17 @@ class HomeViewmodel @Inject constructor(
         BuildConfig.DEBUG && !_isProbeCachingEnabled.value
 
     fun updateFromLocation(location: String) {
-        _journeysCheck.value = JourneysCheckState.Checking
         _fromLocation.value = location
-        refreshJourneys()
     }
 
     fun updateToLocation(location: String) {
-        _journeysCheck.value = JourneysCheckState.Checking
         _toLocation.value = location
-        refreshJourneys()
     }
 
     fun flipLocations() {
-        _journeysCheck.value = JourneysCheckState.Checking
         val temp = _fromLocation.value
         _fromLocation.value = _toLocation.value
         _toLocation.value = temp
-        refreshJourneys()
     }
 
     fun updateDate(millis: Long?) {
@@ -301,7 +294,7 @@ data class UserInteractionState(
 data class DataState(
     val serviceProbe: ServiceProbeState,
     val stations: List<StationEntity>,
-    val journeys: List<JourneyWithLegs>
+    val journeysResult: JourneyResult
 )
 
 data class ServiceProbeState(
@@ -316,6 +309,7 @@ data class HomeData(
     val toLocation: String = "",
     val dateLabel: String = "Today",
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
+    val journeyResult: JourneyResult = JourneyResult.Loading,
     val infoText: HomeInfoText = HomeInfoText(),
     val healthCheck: HealthCheckState = HealthCheckState.Checking,
     val stationsCheck: StationsCheckState = StationsCheckState.Checking,
@@ -357,15 +351,6 @@ sealed class HomeState {
     data class Error(val message: String) : HomeState()
     data class HasData(val data: HomeData) : HomeState()
 }
-
-private fun ApiError.toDisplayMessage(): String =
-    when (this) {
-        is ApiError.Problem -> problem.detail
-        is ApiError.Http -> message.ifBlank { "HTTP $code" }
-        is ApiError.Network -> message
-        is ApiError.Serialization -> message
-        ApiError.EmptyBody -> "The health response was empty."
-    }
 
 private fun String.toColor(): androidx.compose.ui.graphics.Color {
     return try {
