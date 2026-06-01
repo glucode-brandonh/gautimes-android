@@ -43,7 +43,7 @@ fun ProgressCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                "TRAIN LEAVING IN",
+                "NEXT TRAIN LEAVING IN",
                 style = MaterialTheme.typography.labelLarge,
                 color = Color.White
             )
