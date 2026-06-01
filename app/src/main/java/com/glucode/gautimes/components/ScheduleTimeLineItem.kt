@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -26,12 +27,37 @@ import com.glucode.gautimes.R
 import com.glucode.gautimes.ui.theme.GautimesTheme
 import com.glucode.gautimes.ui.theme.cartGray
 import com.glucode.gautimes.ui.theme.cartYellow
+import com.glucode.gautimes.utils.pulse
 
 data class ScheduleTimeLineItemData(
     val timeText: String = "00:00",
     val cartColor: Color = Color.White,
     val cartNumber: Int = 0
 )
+
+@Composable
+fun ScheduleTimeLineItemSkeleton(
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .pulse(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+    }
+}
+
+@Preview
+@Composable
+fun ScheduleTimeLineItemSkeletonPreview() {
+    GautimesTheme {
+        ScheduleTimeLineItemSkeleton()
+    }
+}
 
 @Composable
 fun ScheduleTimeLineItem(
@@ -62,7 +88,10 @@ fun ScheduleTimeLineItem(
                     border = null,
                     shape = CircleShape,
                     label = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
                             Icon(
                                 painter = painterResource(R.drawable.train),
                                 tint = MaterialTheme.colorScheme.background,

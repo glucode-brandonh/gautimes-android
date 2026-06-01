@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
@@ -71,6 +72,12 @@ class HomeViewmodel @Inject constructor(
     }.debounce(100.milliseconds)
         .flatMapLatest { selection ->
             journeysRepository.getJourneys(selection.from, selection.to)
+                .transform { result ->
+                    if (result is JourneyResult.Loading) {
+                        delay(400.milliseconds)
+                    }
+                    emit(result)
+                }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

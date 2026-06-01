@@ -46,6 +46,7 @@ import com.glucode.gautimes.components.LocationTargetSection
 import com.glucode.gautimes.components.ProgressCard
 import com.glucode.gautimes.components.ScheduleTimeLineItem
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
+import com.glucode.gautimes.components.ScheduleTimeLineItemSkeleton
 import com.glucode.gautimes.data.repository.JourneyResult
 import java.util.Calendar
 import java.util.TimeZone
@@ -361,8 +362,11 @@ fun HomeScreenScheduleList(
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         when (journeyResult) {
             is JourneyResult.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(5) {
+                        ScheduleTimeLineItemSkeleton()
+                        Spacer(modifier = Modifier.size(8.dp))
+                    }
                 }
             }
 
