@@ -67,11 +67,17 @@ class HomeViewmodel @Inject constructor(
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, kotlinx.coroutines.FlowPreview::class)
-    private val journeys = combine(selectionState, refreshJourneysTrigger.onStart { emit(Unit) }) { selection, _ ->
-        selection
+    private val journeys = combine(
+        selectionState,
+        stations,
+        refreshJourneysTrigger.onStart { emit(Unit) }
+    ) { selection, stations, _ ->
+        val fromId = stations.find { it.name == selection.from }?.id ?: selection.from.lowercase()
+        val toId = stations.find { it.name == selection.to }?.id ?: selection.to.lowercase()
+        Triple(fromId, toId, selection.dateMillis)
     }.debounce(100.milliseconds)
-        .flatMapLatest { selection ->
-            journeysRepository.getJourneys(selection.from, selection.to)
+        .flatMapLatest { (fromId, toId, _) ->
+            journeysRepository.getJourneys(fromId, toId)
                 .transform { result ->
                     if (result is JourneyResult.Loading) {
                         delay(400.milliseconds)

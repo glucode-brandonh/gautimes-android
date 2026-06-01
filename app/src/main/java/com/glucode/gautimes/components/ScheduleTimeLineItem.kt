@@ -44,9 +44,7 @@ fun ScheduleTimeLineItemSkeleton(
             .fillMaxWidth()
             .height(48.dp)
             .pulse(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        colors = CardDefaults.cardColors()
     ) {
     }
 }
