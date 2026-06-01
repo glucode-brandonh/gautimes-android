@@ -152,6 +152,7 @@ class HomeViewmodel @Inject constructor(
         dataState,
         ticker.onStart { emit(Unit) }
     ) { isLoading, userInteraction, data, _ ->
+        val now = OffsetDateTime.now(ZoneOffset.UTC)
         if (isLoading) {
             HomeState.Loading
         } else {
@@ -163,18 +164,19 @@ class HomeViewmodel @Inject constructor(
 
             val stationNames = stations.map { it.name }.ifEmpty { locations }
             val scheduleTimes = if (journeysResult is JourneyResult.Success) {
-                journeysResult.journeys.map { journey ->
-                    val firstLeg = journey.legs.firstOrNull()
-                    ScheduleTimeLineItemData(
-                        timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
-                        cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
-                        cartNumber = firstLeg?.carriages ?: 4
-                    )
-                }
+                journeysResult.journeys
+                    .filter { OffsetDateTime.parse(it.journey.departureTime).isAfter(now) }
+                    .map { journey ->
+                        val firstLeg = journey.legs.firstOrNull()
+                        ScheduleTimeLineItemData(
+                            timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
+                            cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
+                            cartNumber = firstLeg?.carriages ?: 4
+                        )
+                    }
             } else emptyList()
-            
+
             val nextJourney = if (journeysResult is JourneyResult.Success) {
-                val now = OffsetDateTime.now(ZoneOffset.UTC)
                 journeysResult.journeys
                     .filter { OffsetDateTime.parse(it.journey.departureTime).isAfter(now) }
                     .minByOrNull { it.journey.departureTime }

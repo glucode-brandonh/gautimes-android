@@ -192,10 +192,20 @@ fun BlockNumber(
     color: Color = AmberLED,
     blockSize: Dp = 10.dp,
     spacing: Dp = 1.dp,
-    digitSpacing: Dp = 0.dp
+    digitSpacing: Dp = 0.dp,
+    debounceMillis: Long = 500L
 ) {
+    var debouncedNumber by remember { mutableStateOf(number) }
+
+    LaunchedEffect(number) {
+        if (debounceMillis > 0) {
+            delay(debounceMillis.milliseconds)
+        }
+        debouncedNumber = number
+    }
+
     AnimatedContent(
-        targetState = number,
+        targetState = debouncedNumber,
         transitionSpec = {
             fadeIn(tween(300)) togetherWith fadeOut(tween(500))
         },
@@ -205,7 +215,7 @@ fun BlockNumber(
             horizontalArrangement = Arrangement.spacedBy(digitSpacing),
         ) {
             targetNumber.forEach { char ->
-                Box {
+                Box() {
                     DigitLayer(char, color.copy(alpha = 0.7f), blockSize, spacing, isBlur = true)
                     DigitLayer(char, color, blockSize, spacing, isBlur = false)
                 }
@@ -278,15 +288,22 @@ private fun FallingBit(
 @Composable
 private fun BlockNumberPreview() {
     GautimesTheme {
-        var number by remember { mutableStateOf("9") }
+        var number by remember { mutableStateOf("0") }
         LaunchedEffect(Unit) {
+            var count = 0
             while (true) {
                 delay(2000.milliseconds)
-                number = if (number == "9") "10" else "9"
+                // Simulate rapid changes that should be debounced
+                number = "1"
+                delay(100.milliseconds)
+                number = "12"
+                delay(100.milliseconds)
+                number = (count % 100).toString()
+                count++
             }
         }
-//        Box(modifier = Modifier.padding(40.dp)) {
+        Box(modifier = Modifier.padding(40.dp)) {
             BlockNumber(number = number)
-//        }
+        }
     }
 }
