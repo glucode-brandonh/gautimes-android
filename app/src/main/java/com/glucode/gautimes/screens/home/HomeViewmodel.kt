@@ -55,7 +55,8 @@ class HomeViewmodel @Inject constructor(
     private val _stationsCheck = MutableStateFlow<StationsCheckState>(StationsCheckState.Checking)
     private val _journeysCheck = MutableStateFlow<JourneysCheckState>(JourneysCheckState.Idle)
     private val _isProbeCachingEnabled = MutableStateFlow(true)
-    private val refreshJourneysTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    private val _isRefreshing = MutableStateFlow(false)
+    private val refreshJourneysTrigger = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
 
     private val ticker: Flow<Unit> = flow {
         while (true) {
@@ -86,14 +87,14 @@ class HomeViewmodel @Inject constructor(
     private val journeys = combine(
         selectionState,
         stations,
-        refreshJourneysTrigger.onStart { emit(Unit) }
-    ) { selection, stations, _ ->
+        refreshJourneysTrigger.onStart { emit(false) }
+    ) { selection, stations, force ->
         val fromId = stations.find { it.name == selection.from }?.id ?: selection.from.lowercase()
         val toId = stations.find { it.name == selection.to }?.id ?: selection.to.lowercase()
-        Triple(fromId, toId, selection.dateMillis)
+        Triple(fromId, toId, force)
     }.debounce(100.milliseconds)
-        .flatMapLatest { (fromId, toId, _) ->
-            journeysRepository.getJourneys(fromId, toId)
+        .flatMapLatest { (fromId, toId, force) ->
+            journeysRepository.getJourneys(fromId, toId, forceRefresh = force)
                 .transform { result ->
                     if (result is JourneyResult.Loading) {
                         delay(400.milliseconds)
@@ -148,10 +149,11 @@ class HomeViewmodel @Inject constructor(
 
     val uiState: StateFlow<HomeState> = combine(
         _isLoading,
+        _isRefreshing,
         userInteractionState,
         dataState,
         ticker.onStart { emit(Unit) }
-    ) { isLoading, userInteraction, data, _ ->
+    ) { isLoading, isRefreshing, userInteraction, data, _ ->
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         if (isLoading) {
             HomeState.Loading
@@ -189,6 +191,7 @@ class HomeViewmodel @Inject constructor(
                     dateLabel = DateUtils.formatDateLabel(selection.dateMillis),
                     scheduleTimes = scheduleTimes,
                     journeyResult = journeysResult,
+                    isRefreshing = isRefreshing,
                     infoText = HomeInfoText(
                         title = "Coming up next",
                         description = "Peak fares will be in-affect until 18:45 tonight"
@@ -231,22 +234,35 @@ class HomeViewmodel @Inject constructor(
         }
     }
 
-    fun refreshHealth() {
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            refreshStations(force = true)
+            refreshJourneys(force = true)
+            if (BuildConfig.DEBUG) {
+                refreshHealth(force = true)
+            }
+            delay(500.milliseconds)
+            _isRefreshing.value = false
+        }
+    }
+
+    fun refreshHealth(force: Boolean = shouldForceNetwork()) {
         viewModelScope.launch {
             _healthCheck.value = HealthCheckState.Checking
             _healthCheck.value = when (val result =
-                healthRepository.getHealth(forceNetwork = shouldForceNetwork())) {
+                healthRepository.getHealth(forceNetwork = force)) {
                 is ApiResult.Success -> HealthCheckState.Online(result.value.meta.asOf)
                 is ApiResult.Failure -> HealthCheckState.Offline(result.error.toDisplayMessage())
             }
         }
     }
 
-    fun refreshStations() {
+    fun refreshStations(force: Boolean = shouldForceNetwork()) {
         viewModelScope.launch {
             _stationsCheck.value = StationsCheckState.Checking
             _stationsCheck.value = when (val result =
-                stationsRepository.refreshStations(forceNetwork = shouldForceNetwork())) {
+                stationsRepository.refreshStations(forceNetwork = force)) {
                 is ApiResult.Success -> StationsCheckState.Loaded(
                     count = stations.value.size,
                     asOf = "Just now" // Simplified for now
@@ -257,8 +273,8 @@ class HomeViewmodel @Inject constructor(
         }
     }
 
-    fun refreshJourneys() {
-        refreshJourneysTrigger.tryEmit(Unit)
+    fun refreshJourneys(force: Boolean = false) {
+        refreshJourneysTrigger.tryEmit(force)
     }
 
     fun toggleProbeCaching() {
@@ -367,6 +383,7 @@ data class HomeData(
     val dateLabel: String = "Today",
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
     val journeyResult: JourneyResult = JourneyResult.Loading,
+    val isRefreshing: Boolean = false,
     val infoText: HomeInfoText = HomeInfoText(),
     val healthCheck: HealthCheckState = HealthCheckState.Checking,
     val stationsCheck: StationsCheckState = StationsCheckState.Checking,

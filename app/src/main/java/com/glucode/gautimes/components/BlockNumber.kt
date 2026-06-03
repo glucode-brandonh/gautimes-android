@@ -205,6 +205,7 @@ fun BlockNumber(
     }
 
     AnimatedContent(
+        modifier = modifier,
         targetState = debouncedNumber,
         transitionSpec = {
             fadeIn(tween(300)) togetherWith fadeOut(tween(500))
@@ -215,7 +216,7 @@ fun BlockNumber(
             horizontalArrangement = Arrangement.spacedBy(digitSpacing),
         ) {
             targetNumber.forEach { char ->
-                Box() {
+                Box {
                     DigitLayer(char, color.copy(alpha = 0.7f), blockSize, spacing, isBlur = true)
                     DigitLayer(char, color, blockSize, spacing, isBlur = false)
                 }
@@ -235,7 +236,9 @@ private fun DigitLayer(
     val bitmap = digitBitmaps[char] ?: return
     Column(
         verticalArrangement = Arrangement.spacedBy(spacing),
-        modifier = if (isBlur) Modifier.blur(8.dp).padding(10.dp) else Modifier.padding(10.dp)
+        modifier = if (isBlur) Modifier
+            .blur(8.dp)
+            .padding(10.dp) else Modifier.padding(10.dp)
     ) {
         bitmap.forEachIndexed { rowIndex, rowText ->
             Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {

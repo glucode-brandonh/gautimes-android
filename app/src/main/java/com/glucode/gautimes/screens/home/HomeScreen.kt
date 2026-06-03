@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,7 +46,6 @@ import com.glucode.gautimes.components.LocationSelectorBottomSheet
 import com.glucode.gautimes.components.LocationTargetSection
 import com.glucode.gautimes.components.ProgressCard
 import com.glucode.gautimes.components.ScheduleTimeLineItem
-import com.glucode.gautimes.components.ScheduleTimeLineItemData
 import com.glucode.gautimes.components.ScheduleTimeLineItemSkeleton
 import com.glucode.gautimes.data.repository.JourneyResult
 import java.util.Calendar
@@ -69,94 +69,162 @@ fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltVie
 fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
     var showDatePicker by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
+    PullToRefreshBox(
+        isRefreshing = data.isRefreshing,
+        onRefresh = { viewmodel.refresh() },
+        modifier = Modifier.fillMaxSize()
     ) {
-        Row(
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
         ) {
-            AssistChip(onClick = { showDatePicker = true }, label = {
+            item {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.CalendarMonth,
-                        contentDescription = "Calendar"
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(data.dateLabel, style = MaterialTheme.typography.titleMedium)
-                }
-            })
-            if (BuildConfig.DEBUG) {
-                HealthStatusChip(
-                    healthCheck = data.healthCheck,
-                    onClick = viewmodel::refreshHealth
-                )
-                StationsStatusChip(
-                    stationsCheck = data.stationsCheck,
-                    onClick = viewmodel::refreshStations
-                )
-                JourneysStatusChip(
-                    journeysCheck = data.journeysCheck,
-                    onClick = viewmodel::refreshJourneys
-                )
-                CacheModeChip(
-                    isCachingEnabled = data.isProbeCachingEnabled,
-                    onClick = viewmodel::toggleProbeCaching
-                )
-            }
-        }
-
-        LocationSection(
-            fromLocation = data.fromLocation,
-            toLocation = data.toLocation,
-            onLocationChange = { target ->
-                viewmodel.toggleLocationSheet(true, target)
-            },
-            onFlipLocations = {
-                viewmodel.flipLocations()
-            }
-        )
-
-        Spacer(modifier = Modifier.size(8.dp))
-        ProgressCard(data = data.progress, onClick = {})
-        Spacer(modifier = Modifier.size(8.dp))
-
-        InfoSection(info = data.infoText)
-
-        Spacer(modifier = Modifier.size(8.dp))
-        HomeScreenScheduleList(
-            times = data.scheduleTimes,
-            journeyResult = data.journeyResult
-        )
-
-        if (showDatePicker) {
-            DatePickerModal(
-                onDateSelected = { viewmodel.updateDate(it) },
-                onDismiss = { showDatePicker = false }
-            )
-        }
-
-        if (data.showLocationSheet) {
-            LocationSelectorBottomSheet(
-                data = data.locationSection,
-                onDismissRequest = { location, target ->
-                    if (target == LocationTarget.FROM) {
-                        viewmodel.updateFromLocation(location)
-                    } else {
-                        viewmodel.updateToLocation(location)
+                    AssistChip(onClick = { showDatePicker = true }, label = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.CalendarMonth,
+                                contentDescription = "Calendar"
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(data.dateLabel, style = MaterialTheme.typography.titleMedium)
+                        }
+                    })
+                    if (BuildConfig.DEBUG) {
+                        HealthStatusChip(
+                            healthCheck = data.healthCheck,
+                            onClick = viewmodel::refreshHealth
+                        )
+                        StationsStatusChip(
+                            stationsCheck = data.stationsCheck,
+                            onClick = viewmodel::refreshStations
+                        )
+                        JourneysStatusChip(
+                            journeysCheck = data.journeysCheck,
+                            onClick = { viewmodel.refreshJourneys(force = true) }
+                        )
+                        CacheModeChip(
+                            isCachingEnabled = data.isProbeCachingEnabled,
+                            onClick = viewmodel::toggleProbeCaching
+                        )
                     }
-                    viewmodel.toggleLocationSheet(false, target)
-                },
-            )
+                }
+
+                LocationSection(
+                    fromLocation = data.fromLocation,
+                    toLocation = data.toLocation,
+                    onLocationChange = { target ->
+                        viewmodel.toggleLocationSheet(true, target)
+                    },
+                    onFlipLocations = {
+                        viewmodel.flipLocations()
+                    }
+                )
+
+                Spacer(modifier = Modifier.size(8.dp))
+                ProgressCard(data = data.progress, onClick = {})
+                Spacer(modifier = Modifier.size(8.dp))
+
+                InfoSection(info = data.infoText)
+
+                Spacer(modifier = Modifier.size(8.dp))
+            }
+
+            when (val journeyResult = data.journeyResult) {
+                is JourneyResult.Loading -> {
+                    items(5) {
+                        ScheduleTimeLineItemSkeleton()
+                        Spacer(modifier = Modifier.size(8.dp))
+                    }
+                }
+
+                is JourneyResult.Error -> {
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudOff,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(
+                                journeyResult.message,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                is JourneyResult.Success -> {
+                    if (data.scheduleTimes.isEmpty()) {
+                        item {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text(
+                                    "No schedule found",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        items(data.scheduleTimes.size) { index ->
+                            ScheduleTimeLineItem(
+                                data = data.scheduleTimes[index]
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    if (showDatePicker) {
+        DatePickerModal(
+            onDateSelected = { viewmodel.updateDate(it) },
+            onDismiss = { showDatePicker = false }
+        )
+    }
+
+    if (data.showLocationSheet) {
+        LocationSelectorBottomSheet(
+            data = data.locationSection,
+            onDismissRequest = { location, target ->
+                if (target == LocationTarget.FROM) {
+                    viewmodel.updateFromLocation(location)
+                } else {
+                    viewmodel.updateToLocation(location)
+                }
+                viewmodel.toggleLocationSheet(false, target)
+            },
+        )
     }
 }
 
@@ -354,75 +422,3 @@ fun DatePickerModal(
     }
 }
 
-@Composable
-fun HomeScreenScheduleList(
-    modifier: Modifier = Modifier,
-    times: List<ScheduleTimeLineItemData>,
-    journeyResult: JourneyResult
-) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        when (journeyResult) {
-            is JourneyResult.Loading -> {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(5) {
-                        ScheduleTimeLineItemSkeleton()
-                        Spacer(modifier = Modifier.size(8.dp))
-                    }
-                }
-            }
-
-            is JourneyResult.Error -> {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CloudOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(
-                        journeyResult.message,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            is JourneyResult.Success -> {
-                if (times.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CloudOff,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(
-                            "No schedule found",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(times.size) { index ->
-                            ScheduleTimeLineItem(
-                                data = times[index]
-                            )
-                            Spacer(modifier = Modifier.size(8.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
