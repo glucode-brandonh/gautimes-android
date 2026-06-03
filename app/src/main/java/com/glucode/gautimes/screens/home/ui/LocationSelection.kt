@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.glucode.gautimes.components.AnimatedLocationChip
 import com.glucode.gautimes.screens.home.LocationTarget
 
 @Composable
@@ -35,7 +36,7 @@ fun LocationSelection(
     toLocation: String,
     isFromNear: Boolean = true,
     onLocationChange: (target: LocationTarget) -> Unit,
-    onFlipLocations: () -> Unit
+    onFlipLocations: () -> Unit,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -82,15 +83,11 @@ fun LocationSelection(
                         }
                     }
                 }
-                AssistChip(
+                AnimatedLocationChip(
+                    location = fromLocation,
                     onClick = { onLocationChange(LocationTarget.FROM) },
-                    colors = AssistChipDefaults.assistChipColors(),
-                    label = {
-                        Text(
-                            fromLocation,
-                            style = MaterialTheme.typography.headlineLarge,
-                        )
-                    })
+                    animationLabel = "FromLocationAnimation"
+                )
             }
 
             Row(
@@ -114,15 +111,11 @@ fun LocationSelection(
                     border = null
                 )
             }
-            AssistChip(
+            AnimatedLocationChip(
+                location = toLocation,
                 onClick = { onLocationChange(LocationTarget.TO) },
-                colors = AssistChipDefaults.assistChipColors(),
-                label = {
-                    Text(
-                        toLocation,
-                        style = MaterialTheme.typography.headlineLarge,
-                    )
-                })
+                animationLabel = "ToLocationAnimation"
+            )
         }
     }
 }
