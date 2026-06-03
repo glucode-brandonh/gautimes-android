@@ -49,6 +49,7 @@ import com.glucode.gautimes.components.ScheduleTimeLineItem
 import com.glucode.gautimes.components.ScheduleTimeLineItemSkeleton
 import com.glucode.gautimes.data.repository.JourneyResult
 import java.util.Calendar
+import java.util.Locale
 import java.util.TimeZone
 
 @Composable
@@ -117,12 +118,20 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                             isCachingEnabled = data.isProbeCachingEnabled,
                             onClick = viewmodel::toggleProbeCaching
                         )
+                        if (data.currentLat != null && data.currentLong != null) {
+                            LocationDebugChip(
+                                lat = data.currentLat,
+                                lon = data.currentLong,
+                                onClick = viewmodel::refreshLocation
+                            )
+                        }
                     }
                 }
 
                 LocationSection(
                     fromLocation = data.fromLocation,
                     toLocation = data.toLocation,
+                    isFromNear = data.isFromNear,
                     onLocationChange = { target ->
                         viewmodel.toggleLocationSheet(true, target)
                     },
@@ -226,6 +235,29 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
             },
         )
     }
+}
+
+@Composable
+fun LocationDebugChip(
+    lat: Double,
+    lon: Double,
+    onClick: () -> Unit
+) {
+    val label = "Loc: ${String.format(Locale.US, "%.4f", lat)}, ${String.format(Locale.US, "%.4f", lon)}"
+
+    AssistChip(onClick = onClick, label = {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = Icons.Default.Sync,
+                contentDescription = label
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(label, style = MaterialTheme.typography.titleMedium)
+        }
+    })
 }
 
 @Composable
@@ -334,6 +366,7 @@ fun LocationSection(
     modifier: Modifier = Modifier,
     fromLocation: String,
     toLocation: String,
+    isFromNear: Boolean = true,
     onLocationChange: (target: LocationTarget) -> Unit,
     onFlipLocations: () -> Unit
 ) {
@@ -349,12 +382,14 @@ fun LocationSection(
             LocationTargetSection(
                 targetLabel = LocationTarget.FROM.label,
                 locationName = fromLocation,
+                isNear = isFromNear,
                 onClick = {
                     onLocationChange(LocationTarget.FROM)
                 })
             LocationTargetSection(
                 targetLabel = LocationTarget.TO.label,
                 locationName = toLocation,
+                isNear = true,
                 onClick = {
                     onLocationChange(LocationTarget.TO)
                 })

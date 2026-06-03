@@ -42,6 +42,12 @@ abstract class RepositoryModule {
     abstract fun bindJourneysRepository(
         repository: DefaultJourneysRepository
     ): JourneysRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLocationRepository(
+        repository: DefaultLocationRepository
+    ): LocationRepository
 }
 
 @Module

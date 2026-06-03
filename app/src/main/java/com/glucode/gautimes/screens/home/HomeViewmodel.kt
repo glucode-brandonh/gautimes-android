@@ -12,6 +12,7 @@ import com.glucode.gautimes.data.repository.ApiResult
 import com.glucode.gautimes.data.repository.HealthRepository
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.data.repository.JourneysRepository
+import com.glucode.gautimes.data.repository.LocationRepository
 import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
@@ -42,7 +43,8 @@ import kotlin.time.Duration.Companion.seconds
 class HomeViewmodel @Inject constructor(
     private val healthRepository: HealthRepository,
     private val stationsRepository: StationsRepository,
-    private val journeysRepository: JourneysRepository
+    private val journeysRepository: JourneysRepository,
+    private val locationRepository: LocationRepository
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
@@ -56,6 +58,7 @@ class HomeViewmodel @Inject constructor(
     private val _journeysCheck = MutableStateFlow<JourneysCheckState>(JourneysCheckState.Idle)
     private val _isProbeCachingEnabled = MutableStateFlow(true)
     private val _isRefreshing = MutableStateFlow(false)
+    private val refreshLocationTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private val refreshJourneysTrigger = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
 
     private val ticker: Flow<Unit> = flow {
@@ -70,6 +73,18 @@ class HomeViewmodel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
+        )
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val currentLocation = refreshLocationTrigger.onStart { emit(Unit) }
+        .flatMapLatest {
+            flow {
+                emit(locationRepository.getCurrentLocation())
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
         )
 
     private val selectionState = combine(
@@ -142,9 +157,10 @@ class HomeViewmodel @Inject constructor(
     private val dataState = combine(
         serviceProbeState,
         stations,
-        journeys
-    ) { serviceProbe, stations, journeysResult ->
-        DataState(serviceProbe, stations, journeysResult)
+        journeys,
+        currentLocation
+    ) { serviceProbe, stations, journeysResult, location ->
+        DataState(serviceProbe, stations, journeysResult, location)
     }
 
     val uiState: StateFlow<HomeState> = combine(
@@ -163,6 +179,13 @@ class HomeViewmodel @Inject constructor(
             val serviceProbe = data.serviceProbe
             val stations = data.stations
             val journeysResult = data.journeysResult
+            val location = data.currentLocation
+
+            val fromStation = stations.find { it.name == selection.from }
+            val isFromNear = isLocationNearStation(location, fromStation)
+
+            val currentLat = location?.latitude
+            val currentLong = location?.longitude
 
             val stationNames = stations.map { it.name }.ifEmpty { locations }
             val scheduleTimes = if (journeysResult is JourneyResult.Success) {
@@ -200,6 +223,9 @@ class HomeViewmodel @Inject constructor(
                     stationsCheck = serviceProbe.stationsCheck,
                     journeysCheck = serviceProbe.journeysCheck,
                     isProbeCachingEnabled = serviceProbe.isCachingEnabled,
+                    isFromNear = isFromNear,
+                    currentLat = currentLat,
+                    currentLong = currentLong,
                     progress = buildProgressCard(nextJourney),
                     showLocationSheet = locationSheet.show,
                     locationSection = buildLocationSelector(
@@ -224,6 +250,7 @@ class HomeViewmodel @Inject constructor(
         }
         refreshStations()
         refreshJourneys()
+        refreshLocation()
     }
 
     fun loadData() {
@@ -239,6 +266,7 @@ class HomeViewmodel @Inject constructor(
             _isRefreshing.value = true
             refreshStations(force = true)
             refreshJourneys(force = true)
+            refreshLocation()
             if (BuildConfig.DEBUG) {
                 refreshHealth(force = true)
             }
@@ -275,6 +303,10 @@ class HomeViewmodel @Inject constructor(
 
     fun refreshJourneys(force: Boolean = false) {
         refreshJourneysTrigger.tryEmit(force)
+    }
+
+    fun refreshLocation() {
+        refreshLocationTrigger.tryEmit(Unit)
     }
 
     fun toggleProbeCaching() {
@@ -346,6 +378,22 @@ class HomeViewmodel @Inject constructor(
         _locationTarget.value = target
         _showLocationSheet.value = show
     }
+
+    private fun isLocationNearStation(
+        location: android.location.Location?,
+        station: StationEntity?
+    ): Boolean {
+        if (location == null || station == null) return true
+        val stationLocation = android.location.Location("").apply {
+            latitude = station.latitude
+            longitude = station.longitude
+        }
+        return location.distanceTo(stationLocation) <= PROXIMITY_THRESHOLD_METERS
+    }
+
+    companion object {
+        private const val PROXIMITY_THRESHOLD_METERS = 15000 // 30km
+    }
 }
 
 data class SelectionState(
@@ -367,7 +415,8 @@ data class UserInteractionState(
 data class DataState(
     val serviceProbe: ServiceProbeState,
     val stations: List<StationEntity>,
-    val journeysResult: JourneyResult
+    val journeysResult: JourneyResult,
+    val currentLocation: android.location.Location?
 )
 
 data class ServiceProbeState(
@@ -389,6 +438,9 @@ data class HomeData(
     val stationsCheck: StationsCheckState = StationsCheckState.Checking,
     val journeysCheck: JourneysCheckState = JourneysCheckState.Idle,
     val isProbeCachingEnabled: Boolean = true,
+    val isFromNear: Boolean = true,
+    val currentLat: Double? = null,
+    val currentLong: Double? = null,
     val progress: ProgressCardData = ProgressCardData(),
     val locationSection: LocationSelectorBottomSheetData = LocationSelectorBottomSheetData(locations = locations),
     val showLocationSheet: Boolean = false,
