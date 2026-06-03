@@ -1,6 +1,7 @@
 package com.glucode.gautimes.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -22,7 +23,7 @@ fun AnimatedLocationChip(
 ) {
     AssistChip(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.animateContentSize(),
         colors = AssistChipDefaults.assistChipColors(),
         label = {
             AnimatedContent(
@@ -34,7 +35,7 @@ fun AnimatedLocationChip(
                 label = animationLabel
             ) { targetLocation ->
                 Text(
-                    targetLocation,
+                    text = targetLocation,
                     style = MaterialTheme.typography.headlineLarge,
                 )
             }

@@ -1,5 +1,11 @@
 package com.glucode.gautimes.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -72,7 +78,16 @@ fun ScheduleTimeLineItem(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = data.timeText, style = MaterialTheme.typography.titleLarge)
+            AnimatedContent(
+                targetState = data.timeText,
+                transitionSpec = {
+                    (slideInVertically { height -> height } + fadeIn())
+                        .togetherWith(slideOutVertically { height -> -height } + fadeOut())
+                },
+                label = "TimeAnimation"
+            ) { targetTime ->
+                Text(text = targetTime, style = MaterialTheme.typography.titleLarge)
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),

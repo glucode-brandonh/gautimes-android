@@ -6,7 +6,6 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,84 +37,78 @@ fun LocationSelection(
     onLocationChange: (target: LocationTarget) -> Unit,
     onFlipLocations: () -> Unit,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        horizontalAlignment = Alignment.Start,
     ) {
-        Column(
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.animateContentSize()
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.heightIn(min = 48.dp)
         ) {
-            Column {
+            Text(LocationTarget.FROM.label, style = MaterialTheme.typography.titleMedium)
+            AnimatedVisibility(
+                visible = !isFromNear,
+                enter = fadeIn() + expandHorizontally(),
+                exit = fadeOut() + shrinkHorizontally()
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.heightIn(min = 48.dp)
                 ) {
-                    Text(LocationTarget.FROM.label, style = MaterialTheme.typography.titleMedium)
-                    AnimatedVisibility(
-                        visible = !isFromNear,
-                        enter = fadeIn() + expandHorizontally(),
-                        exit = fadeOut() + shrinkHorizontally()
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Spacer(modifier = Modifier.size(8.dp))
-                            AssistChip(
-                                onClick = {},
-                                label = { Text("Not near you") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = Color(0xFFFF9800),
-                                    labelColor = Color.White,
-                                    leadingIconContentColor = Color.White
-                                ),
-                                border = null
+                    Spacer(modifier = Modifier.size(8.dp))
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("Not near you") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
                             )
-                        }
-                    }
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color(0xFFFF9800),
+                            labelColor = Color.White,
+                            leadingIconContentColor = Color.White
+                        ),
+                        border = null
+                    )
                 }
-                AnimatedLocationChip(
-                    location = fromLocation,
-                    onClick = { onLocationChange(LocationTarget.FROM) },
-                    animationLabel = "FromLocationAnimation"
-                )
             }
+        }
+        AnimatedLocationChip(
+            location = fromLocation,
+            onClick = { onLocationChange(LocationTarget.FROM) },
+            animationLabel = "FromLocationAnimation"
+        )
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.heightIn(min = 48.dp)
-            ) {
-                Text(LocationTarget.TO.label, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.size(8.dp))
-                AssistChip(
-                    onClick = onFlipLocations,
-                    label = { Text("Swap") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.SwapVert,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                    ),
-                    border = null
-                )
-            }
-            AnimatedLocationChip(
-                location = toLocation,
-                onClick = { onLocationChange(LocationTarget.TO) },
-                animationLabel = "ToLocationAnimation"
+        Spacer(modifier = Modifier.size(8.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.heightIn(min = 48.dp)
+        ) {
+            Text(LocationTarget.TO.label, style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.size(8.dp))
+            AssistChip(
+                onClick = onFlipLocations,
+                label = { Text("Swap") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.SwapVert,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                colors = AssistChipDefaults.assistChipColors(),
+                border = null
             )
         }
+        AnimatedLocationChip(
+            location = toLocation,
+            onClick = { onLocationChange(LocationTarget.TO) },
+            animationLabel = "ToLocationAnimation"
+        )
     }
 }
