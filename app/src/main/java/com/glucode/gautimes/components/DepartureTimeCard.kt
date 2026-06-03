@@ -11,12 +11,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.glucode.gautimes.ui.theme.GautimesTheme
 
-data class ProgressCardData(
+data class DepartureTimeCardData(
     val timeValue: String = "",
     val progressDescription: String = "",
     val arrivalTime: String = "",
@@ -24,16 +23,15 @@ data class ProgressCardData(
 )
 
 @Composable
-fun ProgressCard(
+fun DepartureTimeCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
-    data: ProgressCardData = ProgressCardData()
+    data: DepartureTimeCardData = DepartureTimeCardData()
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         onClick = onClick,
-        colors = CardDefaults.cardColors(
-        )
+        colors = CardDefaults.cardColors()
     ) {
         Column(
             modifier = Modifier
@@ -45,21 +43,18 @@ fun ProgressCard(
             Text(
                 "NEXT TRAIN LEAVING IN",
                 style = MaterialTheme.typography.labelLarge,
-                color = Color.White
             )
-            BlockNumber(
+            FallingPixelNumberDisplay(
                 number = data.timeValue
             )
             Text(
                 data.progressDescription,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f)
             )
             if (data.arrivalTime.isNotEmpty()) {
                 Text(
                     "Arrive at: ${data.arrivalTime}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.8f)
                 )
             }
         }
@@ -68,10 +63,10 @@ fun ProgressCard(
 
 @Preview
 @Composable
-fun ProgressCardPreview(modifier: Modifier = Modifier) {
+fun DepartureTimeCardPreview(modifier: Modifier = Modifier) {
     GautimesTheme {
-        ProgressCard(
-            data = ProgressCardData(
+        DepartureTimeCard(
+            data = DepartureTimeCardData(
                 timeValue = "17",
                 progressDescription = "minutes until departure"
             ), onClick = {})

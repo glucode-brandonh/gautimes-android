@@ -188,7 +188,7 @@ private val digitBitmaps = mapOf(
 )
 
 @Composable
-fun BlockNumber(
+fun FallingPixelNumberDisplay(
     number: String,
     modifier: Modifier = Modifier,
     color: Color = AmberLED,
@@ -292,7 +292,7 @@ private fun FallingBit(
 
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
-private fun BlockNumberPreview() {
+private fun FallingPixelNumberDisplayPreview() {
     GautimesTheme {
         var number by remember { mutableStateOf("0") }
         LaunchedEffect(Unit) {
@@ -309,7 +309,7 @@ private fun BlockNumberPreview() {
             }
         }
         Box(modifier = Modifier.padding(40.dp)) {
-            BlockNumber(number = number)
+            FallingPixelNumberDisplay(number = number)
         }
     }
 }

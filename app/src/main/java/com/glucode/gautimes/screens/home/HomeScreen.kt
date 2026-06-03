@@ -13,24 +13,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,14 +34,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.LocationSelectorBottomSheet
-import com.glucode.gautimes.components.LocationTargetSection
-import com.glucode.gautimes.components.ProgressCard
+import com.glucode.gautimes.components.DepartureTimeCard
 import com.glucode.gautimes.components.ScheduleTimeLineItem
 import com.glucode.gautimes.components.ScheduleTimeLineItemSkeleton
 import com.glucode.gautimes.data.repository.JourneyResult
-import java.util.Calendar
-import java.util.Locale
-import java.util.TimeZone
+import com.glucode.gautimes.screens.home.ui.DatePickerModal
+import com.glucode.gautimes.screens.home.ui.LocationSelection
+import com.glucode.gautimes.screens.home.ui.debug.CacheModeChip
+import com.glucode.gautimes.screens.home.ui.debug.HealthStatusChip
+import com.glucode.gautimes.screens.home.ui.debug.JourneysStatusChip
+import com.glucode.gautimes.screens.home.ui.debug.LocationDebugChip
+import com.glucode.gautimes.screens.home.ui.debug.StationsStatusChip
 
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltViewModel()) {
@@ -81,54 +75,9 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                 .padding(horizontal = 16.dp)
         ) {
             item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AssistChip(onClick = { showDatePicker = true }, label = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.CalendarMonth,
-                                contentDescription = "Calendar"
-                            )
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(data.dateLabel, style = MaterialTheme.typography.titleMedium)
-                        }
-                    })
-                    if (BuildConfig.DEBUG) {
-                        HealthStatusChip(
-                            healthCheck = data.healthCheck,
-                            onClick = viewmodel::refreshHealth
-                        )
-                        StationsStatusChip(
-                            stationsCheck = data.stationsCheck,
-                            onClick = viewmodel::refreshStations
-                        )
-                        JourneysStatusChip(
-                            journeysCheck = data.journeysCheck,
-                            onClick = { viewmodel.refreshJourneys(force = true) }
-                        )
-                        CacheModeChip(
-                            isCachingEnabled = data.isProbeCachingEnabled,
-                            onClick = viewmodel::toggleProbeCaching
-                        )
-                        if (data.currentLat != null && data.currentLong != null) {
-                            LocationDebugChip(
-                                lat = data.currentLat,
-                                lon = data.currentLong,
-                                onClick = viewmodel::refreshLocation
-                            )
-                        }
-                    }
-                }
+                showDatePicker = HomeAssistChips(showDatePicker, data, viewmodel)
 
-                LocationSection(
+                LocationSelection(
                     fromLocation = data.fromLocation,
                     toLocation = data.toLocation,
                     isFromNear = data.isFromNear,
@@ -141,11 +90,9 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                 )
 
                 Spacer(modifier = Modifier.size(8.dp))
-                ProgressCard(data = data.progress, onClick = {})
+                DepartureTimeCard(data = data.progress, onClick = {})
                 Spacer(modifier = Modifier.size(8.dp))
-
                 InfoSection(info = data.infoText)
-
                 Spacer(modifier = Modifier.size(8.dp))
             }
 
@@ -160,7 +107,9 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                 is JourneyResult.Error -> {
                     item {
                         Column(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 32.dp),
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -184,7 +133,9 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                     if (data.scheduleTimes.isEmpty()) {
                         item {
                             Column(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 32.dp),
                                 verticalArrangement = Arrangement.Center,
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -238,169 +189,59 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
 }
 
 @Composable
-fun LocationDebugChip(
-    lat: Double,
-    lon: Double,
-    onClick: () -> Unit
-) {
-    val label = "Loc: ${String.format(Locale.US, "%.4f", lat)}, ${String.format(Locale.US, "%.4f", lon)}"
-
-    AssistChip(onClick = onClick, label = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
-                imageVector = Icons.Default.Sync,
-                contentDescription = label
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(label, style = MaterialTheme.typography.titleMedium)
-        }
-    })
-}
-
-@Composable
-fun HealthStatusChip(
-    healthCheck: HealthCheckState,
-    onClick: () -> Unit
-) {
-    val (icon, label) = when (healthCheck) {
-        HealthCheckState.Checking -> Icons.Default.Sync to "API: checking"
-        is HealthCheckState.Online -> Icons.Default.CloudDone to "API: online"
-        is HealthCheckState.Offline -> Icons.Default.CloudOff to "API: offline"
-    }
-
-    AssistChip(onClick = onClick, label = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(label, style = MaterialTheme.typography.titleMedium)
-        }
-    })
-}
-
-@Composable
-fun StationsStatusChip(
-    stationsCheck: StationsCheckState,
-    onClick: () -> Unit
-) {
-    val (icon, label) = when (stationsCheck) {
-        StationsCheckState.Checking -> Icons.Default.Sync to "Stations: checking"
-        is StationsCheckState.Loaded -> Icons.Default.CloudDone to "Stations: ${stationsCheck.count}"
-        is StationsCheckState.Failed -> Icons.Default.CloudOff to "Stations: offline"
-    }
-
-    AssistChip(onClick = onClick, label = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(label, style = MaterialTheme.typography.titleMedium)
-        }
-    })
-}
-
-@Composable
-fun JourneysStatusChip(
-    journeysCheck: JourneysCheckState,
-    onClick: () -> Unit
-) {
-    val (icon, label) = when (journeysCheck) {
-        JourneysCheckState.Idle -> Icons.Default.Sync to "Journeys: idle"
-        JourneysCheckState.Checking -> Icons.Default.Sync to "Journeys: checking"
-        is JourneysCheckState.Loaded -> Icons.Default.CloudDone to "Journeys: ${journeysCheck.count}"
-        is JourneysCheckState.Failed -> Icons.Default.CloudOff to "Journeys: offline"
-    }
-
-    AssistChip(onClick = onClick, label = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(label, style = MaterialTheme.typography.titleMedium)
-        }
-    })
-}
-
-@Composable
-fun CacheModeChip(
-    isCachingEnabled: Boolean,
-    onClick: () -> Unit
-) {
-    val label = if (isCachingEnabled) "Cache: on" else "Cache: off"
-
-    AssistChip(onClick = onClick, label = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
-                imageVector = Icons.Default.Sync,
-                contentDescription = label
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(label, style = MaterialTheme.typography.titleMedium)
-        }
-    })
-}
-
-@Composable
-fun LocationSection(
-    modifier: Modifier = Modifier,
-    fromLocation: String,
-    toLocation: String,
-    isFromNear: Boolean = true,
-    onLocationChange: (target: LocationTarget) -> Unit,
-    onFlipLocations: () -> Unit
-) {
+private fun HomeAssistChips(
+    showDatePicker: Boolean,
+    data: HomeData,
+    viewmodel: HomeViewmodel
+): Boolean {
+    var showDatePicker1 = showDatePicker
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            LocationTargetSection(
-                targetLabel = LocationTarget.FROM.label,
-                locationName = fromLocation,
-                isNear = isFromNear,
-                onClick = {
-                    onLocationChange(LocationTarget.FROM)
-                })
-            LocationTargetSection(
-                targetLabel = LocationTarget.TO.label,
-                locationName = toLocation,
-                isNear = true,
-                onClick = {
-                    onLocationChange(LocationTarget.TO)
-                })
-        }
-        IconButton(onClick = onFlipLocations) {
-            Icon(
-                imageVector = Icons.Default.SwapVert,
-                contentDescription = "Flip Locations",
+        AssistChip(onClick = { showDatePicker1 = true }, label = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = "Calendar"
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(data.dateLabel, style = MaterialTheme.typography.titleMedium)
+            }
+        })
+        if (BuildConfig.DEBUG) {
+            HealthStatusChip(
+                healthCheck = data.healthCheck,
+                onClick = viewmodel::refreshHealth
             )
+            StationsStatusChip(
+                stationsCheck = data.stationsCheck,
+                onClick = viewmodel::refreshStations
+            )
+            JourneysStatusChip(
+                journeysCheck = data.journeysCheck,
+                onClick = { viewmodel.refreshJourneys(force = true) }
+            )
+            CacheModeChip(
+                isCachingEnabled = data.isProbeCachingEnabled,
+                onClick = viewmodel::toggleProbeCaching
+            )
+            if (data.currentLat != null && data.currentLong != null) {
+                LocationDebugChip(
+                    lat = data.currentLat,
+                    lon = data.currentLong,
+                    onClick = viewmodel::refreshLocation
+                )
+            }
         }
     }
+    return showDatePicker1
 }
 
 @Composable
@@ -414,46 +255,4 @@ fun InfoSection(info: HomeInfoText) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DatePickerModal(
-    onDateSelected: (Long?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val datePickerState = rememberDatePickerState(
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                calendar.set(Calendar.HOUR_OF_DAY, 0)
-                calendar.set(Calendar.MINUTE, 0)
-                calendar.set(Calendar.SECOND, 0)
-                calendar.set(Calendar.MILLISECOND, 0)
-                return utcTimeMillis >= calendar.timeInMillis
-            }
-
-            override fun isSelectableYear(year: Int): Boolean {
-                return year >= Calendar.getInstance().get(Calendar.YEAR)
-            }
-        }
-    )
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onDateSelected(datePickerState.selectedDateMillis)
-                onDismiss()
-            }) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    ) {
-        DatePicker(state = datePickerState, showModeToggle = false)
-    }
-}
 

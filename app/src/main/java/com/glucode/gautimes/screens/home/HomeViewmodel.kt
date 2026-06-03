@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
-import com.glucode.gautimes.components.ProgressCardData
+import com.glucode.gautimes.components.DepartureTimeCardData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
 import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 import com.glucode.gautimes.data.local.entities.StationEntity
@@ -341,16 +341,16 @@ class HomeViewmodel @Inject constructor(
         }
     }
 
-    fun buildProgressCard(nextJourney: JourneyWithLegs?): ProgressCardData {
+    fun buildProgressCard(nextJourney: JourneyWithLegs?): DepartureTimeCardData {
         val progress = if (nextJourney != null) {
             val minutesUntil = DateUtils.getMinutesUntil(nextJourney.journey.departureTime)
-            ProgressCardData(
+            DepartureTimeCardData(
                 timeValue = minutesUntil.toString(),
                 progressDescription = "MINUTES UNTIL DEPARTURE",
                 arrivalTime = DateUtils.formatIsoTime(nextJourney.journey.arrivalTime)
             )
         } else {
-            ProgressCardData(
+            DepartureTimeCardData(
                 timeValue = "--",
                 progressDescription = "NO MORE JOURNEYS"
             )
@@ -441,7 +441,7 @@ data class HomeData(
     val isFromNear: Boolean = true,
     val currentLat: Double? = null,
     val currentLong: Double? = null,
-    val progress: ProgressCardData = ProgressCardData(),
+    val progress: DepartureTimeCardData = DepartureTimeCardData(),
     val locationSection: LocationSelectorBottomSheetData = LocationSelectorBottomSheetData(locations = locations),
     val showLocationSheet: Boolean = false,
 )
