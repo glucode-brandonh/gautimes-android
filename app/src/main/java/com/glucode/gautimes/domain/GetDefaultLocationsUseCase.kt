@@ -21,14 +21,14 @@ class GetDefaultLocationsUseCase @Inject constructor(
             if (effectiveSettings.useSchedule) {
                 val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                 when {
-                    hour in 6..9 && effectiveSettings.morningFromId != null && effectiveSettings.morningToId != null -> {
+                    hour in 5..11 && effectiveSettings.morningFromId != null && effectiveSettings.morningToId != null -> {
                         DefaultLocations(
                             effectiveSettings.morningFromId,
                             effectiveSettings.morningToId
                         )
                     }
 
-                    hour in 15..18 && effectiveSettings.afternoonFromId != null && effectiveSettings.afternoonToId != null -> {
+                    hour in 12..20 && effectiveSettings.afternoonFromId != null && effectiveSettings.afternoonToId != null -> {
                         DefaultLocations(
                             effectiveSettings.afternoonFromId,
                             effectiveSettings.afternoonToId

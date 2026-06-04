@@ -100,7 +100,7 @@ fun SettingsScreen(
 
             if (uiState.userSettings.useSchedule) {
                 Text(
-                    "Morning Routine (06:00 - 10:00)",
+                    "Morning Routine (05:00 - 12:00)",
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
@@ -131,7 +131,7 @@ fun SettingsScreen(
                 )
 
                 Text(
-                    "Afternoon Routine (15:00 - 19:00)",
+                    "Afternoon Routine (12:00 - 21:00)",
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
