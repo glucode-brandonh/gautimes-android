@@ -7,7 +7,9 @@ import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
+import java.text.NumberFormat
 import java.time.OffsetDateTime
+import java.util.Locale
 import java.time.ZoneOffset
 import javax.inject.Inject
 
@@ -98,10 +100,14 @@ class HomeMapper @Inject constructor() {
     private fun buildProgressCard(nextJourney: JourneyWithLegs?): DepartureTimeCardData {
         return if (nextJourney != null) {
             val minutesUntil = DateUtils.getMinutesUntil(nextJourney.journey.departureTime)
+            val currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("en-ZA"))
+            val price = currencyFormat.format(nextJourney.journey.totalFareZar)
+
             DepartureTimeCardData(
                 timeValue = minutesUntil.toString(),
                 progressDescription = "MINUTES UNTIL DEPARTURE",
-                arrivalTime = DateUtils.formatIsoTime(nextJourney.journey.arrivalTime)
+                arrivalTime = DateUtils.formatIsoTime(nextJourney.journey.arrivalTime),
+                price = price
             )
         } else {
             DepartureTimeCardData(
