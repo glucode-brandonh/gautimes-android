@@ -51,12 +51,10 @@ fun DepartureTimeCard(
                 data.progressDescription,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            if (data.arrivalTime.isNotEmpty()) {
-                Text(
-                    "Arrive at: ${data.arrivalTime}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+            Text(
+                "Arrive at: ${data.arrivalTime.ifEmpty { "- -" }}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -23,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -161,6 +163,18 @@ private val digitBitmaps = mapOf(
         "######",
         "#####."
     ),
+    ' ' to listOf(
+        "......",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......"
+    ),
     '-' to listOf(
         "......",
         "......",
@@ -195,7 +209,7 @@ fun FallingPixelNumberDisplay(
     blockSize: Dp = 10.dp,
     spacing: Dp = 1.dp,
     digitSpacing: Dp = 0.dp,
-    debounceMillis: Long = 500L
+    debounceMillis: Long = 300L
 ) {
     var debouncedNumber by remember { mutableStateOf(number) }
 
@@ -206,22 +220,40 @@ fun FallingPixelNumberDisplay(
         debouncedNumber = number
     }
 
-    AnimatedContent(
-        modifier = modifier,
-        targetState = debouncedNumber,
-        transitionSpec = {
-            (slideInVertically { height -> -height } + fadeIn(tween(300)))
-                .togetherWith(slideOutVertically { height -> height } + fadeOut(tween(500)))
-        },
-        label = "BlockNumberAnimation"
-    ) { targetNumber ->
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(digitSpacing),
-        ) {
-            targetNumber.forEach { char ->
-                Box {
-                    DigitLayer(char, color.copy(alpha = 0.7f), blockSize, spacing, isBlur = true)
-                    DigitLayer(char, color, blockSize, spacing, isBlur = false)
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        AnimatedContent(
+            targetState = debouncedNumber,
+            contentAlignment = Alignment.Center,
+            transitionSpec = {
+                (slideInVertically { height -> -height } + fadeIn(tween(300)))
+                    .togetherWith(slideOutVertically { height -> height } + fadeOut(tween(400)))
+            },
+            label = "NumberAnimation"
+        ) { targetNumber ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(digitSpacing),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                targetNumber.forEach { char ->
+                    Box {
+                        DigitLayer(
+                            targetChar = char,
+                            color = color.copy(alpha = 0.7f),
+                            blockSize = blockSize,
+                            spacing = spacing,
+                            isBlur = true
+                        )
+                        DigitLayer(
+                            targetChar = char,
+                            color = color,
+                            blockSize = blockSize,
+                            spacing = spacing,
+                            isBlur = false
+                        )
+                    }
                 }
             }
         }
@@ -230,13 +262,13 @@ fun FallingPixelNumberDisplay(
 
 @Composable
 private fun DigitLayer(
-    char: Char,
+    targetChar: Char,
     color: Color,
     blockSize: Dp,
     spacing: Dp,
     isBlur: Boolean
 ) {
-    val bitmap = digitBitmaps[char] ?: return
+    val bitmap = digitBitmaps[targetChar] ?: return
     Column(
         verticalArrangement = Arrangement.spacedBy(spacing),
         modifier = if (isBlur) Modifier
