@@ -19,6 +19,8 @@ interface JourneysRepository {
         to: String,
         forceRefresh: Boolean = false
     ): Flow<JourneyResult>
+
+    suspend fun loadMore(from: String, to: String, cursor: String): ApiResult<Unit>
 }
 
 class DefaultJourneysRepository @Inject constructor(
@@ -30,8 +32,8 @@ class DefaultJourneysRepository @Inject constructor(
     override fun getJourneys(from: String, to: String, forceRefresh: Boolean): Flow<JourneyResult> = channelFlow {
         send(JourneyResult.Loading)
 
-        val metadata = journeyDao.getMetadataForRoute(from, to)
-        val isFresh = metadata != null && isCacheFresh(metadata.lastUpdatedMillis)
+        val initialMetadata = journeyDao.getMetadataForRoute(from, to)
+        val isFresh = initialMetadata != null && isCacheFresh(initialMetadata.lastUpdatedMillis)
 
         if (forceRefresh || !isFresh) {
             launch {
@@ -46,18 +48,39 @@ class DefaultJourneysRepository @Inject constructor(
                 if (result is ApiResult.Failure) {
                     send(JourneyResult.Error(result.error.toDisplayMessage()))
                 } else if (result is ApiResult.Success) {
-                    saveToCache(from, to, result.value.data)
+                    saveToCache(from, to, result.value.data, result.value.meta.nextCursor)
                 }
             }
         }
 
         journeyDao.getJourneysStreamForRoute(from, to).collect { journeys ->
+            val metadata = journeyDao.getMetadataForRoute(from, to)
             if (journeys.isNotEmpty()) {
-                send(JourneyResult.Success(journeys))
+                send(JourneyResult.Success(journeys, nextCursor = metadata?.nextCursor))
             } else if (isFresh) {
-                send(JourneyResult.Success(emptyList()))
+                send(JourneyResult.Success(emptyList(), nextCursor = metadata?.nextCursor))
             }
             // If empty and not fresh, we wait for the network fetch launched above to update the DB
+        }
+    }
+
+    override suspend fun loadMore(from: String, to: String, cursor: String): ApiResult<Unit> {
+        val result = execute {
+            api.getJourneys(
+                from = from,
+                to = to,
+                after = cursor,
+                include = null
+            )
+        }
+
+        return when (result) {
+            is ApiResult.Success -> {
+                appendToCache(from, to, result.value.data, result.value.meta.nextCursor)
+                ApiResult.Success(Unit, result.rateLimit)
+            }
+
+            is ApiResult.Failure -> ApiResult.Failure(result.error)
         }
     }
 
@@ -66,14 +89,34 @@ class DefaultJourneysRepository @Inject constructor(
         return age < CACHE_TIMEOUT.inWholeMilliseconds
     }
 
-    private suspend fun saveToCache(from: String, to: String, data: JourneysDataDto) {
+    private suspend fun saveToCache(
+        from: String,
+        to: String,
+        data: JourneysDataDto,
+        nextCursor: String?
+    ) {
         val journeyEntities = data.journeys.map { it.asEntity(from, to) }
         val legEntities = data.journeys.flatMap { journey ->
             journey.legs.map { it.asEntity(journey.id) }
         }
-        val metadata = JourneyQueryMetadataEntity(from, to, System.currentTimeMillis())
+        val metadata = JourneyQueryMetadataEntity(from, to, System.currentTimeMillis(), nextCursor)
 
         journeyDao.updateJourneysForRoute(from, to, journeyEntities, legEntities, metadata)
+    }
+
+    private suspend fun appendToCache(
+        from: String,
+        to: String,
+        data: JourneysDataDto,
+        nextCursor: String?
+    ) {
+        val journeyEntities = data.journeys.map { it.asEntity(from, to) }
+        val legEntities = data.journeys.flatMap { journey ->
+            journey.legs.map { it.asEntity(journey.id) }
+        }
+        val metadata = JourneyQueryMetadataEntity(from, to, System.currentTimeMillis(), nextCursor)
+
+        journeyDao.appendJourneysForRoute(journeyEntities, legEntities, metadata)
     }
 
     private fun JourneyDto.asEntity(from: String, to: String) = JourneyEntity(

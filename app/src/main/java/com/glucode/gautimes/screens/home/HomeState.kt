@@ -20,6 +20,8 @@ data class HomeData(
     val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
     val journeyResult: JourneyResult = JourneyResult.Loading,
     val isRefreshing: Boolean = false,
+    val isFetchingMore: Boolean = false,
+    val nextCursor: String? = null,
     val infoText: HomeInfoText = HomeInfoText(),
     val healthCheck: HealthCheckState = HealthCheckState.Checking,
     val stationsCheck: StationsCheckState = StationsCheckState.Checking,
@@ -62,6 +64,7 @@ enum class LocationTarget(val label: String) {
 data class HomeUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
+    val isFetchingMore: Boolean = false,
     val fromLocation: String = "Sandton",
     val toLocation: String = "Hatfield",
     val selectedDate: Long = Calendar.getInstance().timeInMillis,
@@ -84,6 +87,7 @@ sealed class HomeAction {
     data object RefreshStations : HomeAction()
     data class RefreshJourneys(val force: Boolean = false) : HomeAction()
     data object RefreshLocation : HomeAction()
+    data class LoadMore(val cursor: String) : HomeAction()
 }
 
 sealed class HomeEffect {

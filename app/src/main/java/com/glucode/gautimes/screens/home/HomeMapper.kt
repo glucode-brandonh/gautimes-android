@@ -16,6 +16,7 @@ class HomeMapper @Inject constructor() {
     fun mapToHomeState(
         isLoading: Boolean,
         isRefreshing: Boolean,
+        isFetchingMore: Boolean,
         userInteraction: UserInteractionState,
         data: DataState,
         isFromNear: Boolean
@@ -41,9 +42,12 @@ class HomeMapper @Inject constructor() {
                 .sortedBy { it.journey.departureTime }
         } else emptyList()
 
+        val nextCursor = (journeysResult as? JourneyResult.Success)?.nextCursor
+
         val scheduleTimes = upcomingJourneys.map { journey ->
             val firstLeg = journey.legs.firstOrNull()
             ScheduleTimeLineItemData(
+                id = journey.journey.id,
                 timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
                 cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
                 cartNumber = firstLeg?.carriages ?: 4
@@ -60,6 +64,8 @@ class HomeMapper @Inject constructor() {
                 scheduleTimes = scheduleTimes,
                 journeyResult = journeysResult,
                 isRefreshing = isRefreshing,
+                isFetchingMore = isFetchingMore,
+                nextCursor = nextCursor,
                 infoText = HomeInfoText(
                     title = "Coming up next",
                     description = "Peak fares will be in-affect until 18:45 tonight"

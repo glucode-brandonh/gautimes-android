@@ -9,5 +9,6 @@ import androidx.room.Entity
 data class JourneyQueryMetadataEntity(
     val fromStation: String,
     val toStation: String,
-    val lastUpdatedMillis: Long
+    val lastUpdatedMillis: Long,
+    val nextCursor: String? = null
 )

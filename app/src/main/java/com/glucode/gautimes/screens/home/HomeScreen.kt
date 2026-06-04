@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -24,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -53,7 +55,7 @@ import com.glucode.gautimes.screens.home.ui.debug.JourneysStatusChip
 import com.glucode.gautimes.screens.home.ui.debug.LocationDebugChip
 import com.glucode.gautimes.screens.home.ui.debug.StationsStatusChip
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
@@ -164,11 +166,37 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                             StatusMessage(message = "No schedule found")
                         }
                     } else {
-                        items(data.scheduleTimes.size) { index ->
+                        items(data.scheduleTimes, key = { it.id }) { itemData ->
                             ScheduleTimeLineItem(
-                                data = data.scheduleTimes[index]
+                                modifier = Modifier.animateItem(),
+                                data = itemData
                             )
                             Spacer(modifier = Modifier.size(8.dp))
+                        }
+
+                        if (data.nextCursor != null) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (data.isFetchingMore) {
+                                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                    } else {
+                                        TextButton(
+                                            onClick = {
+                                                viewmodel.onAction(
+                                                    HomeAction.LoadMore(data.nextCursor)
+                                                )
+                                            }
+                                        ) {
+                                            Text("Load More")
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -36,6 +36,7 @@ import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.pulse
 
 data class ScheduleTimeLineItemData(
+    val id: String = "",
     val timeText: String = "00:00",
     val cartColor: Color = Color.White,
     val cartNumber: Int = 0

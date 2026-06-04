@@ -4,6 +4,11 @@ import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 
 sealed class JourneyResult {
     data object Loading : JourneyResult()
-    data class Success(val journeys: List<JourneyWithLegs>, val isStale: Boolean = false) : JourneyResult()
+    data class Success(
+        val journeys: List<JourneyWithLegs>,
+        val nextCursor: String? = null,
+        val isStale: Boolean = false
+    ) : JourneyResult()
+
     data class Error(val message: String) : JourneyResult()
 }

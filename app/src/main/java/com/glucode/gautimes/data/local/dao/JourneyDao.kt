@@ -43,6 +43,17 @@ interface JourneyDao {
         insertMetadata(metadata)
     }
 
+    @Transaction
+    suspend fun appendJourneysForRoute(
+        journeys: List<JourneyEntity>,
+        legs: List<JourneyLegEntity>,
+        metadata: JourneyQueryMetadataEntity
+    ) {
+        insertJourneys(journeys)
+        insertLegs(legs)
+        insertMetadata(metadata)
+    }
+
     @Query("SELECT * FROM journey_query_metadata WHERE fromStation = :from AND toStation = :to")
     suspend fun getMetadataForRoute(from: String, to: String): JourneyQueryMetadataEntity?
 

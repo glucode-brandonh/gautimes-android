@@ -159,6 +159,7 @@ class HomeViewmodel @Inject constructor(
         homeMapper.mapToHomeState(
             state.isLoading,
             state.isRefreshing,
+            state.isFetchingMore,
             userInteraction,
             data,
             isFromNear
@@ -177,7 +178,7 @@ class HomeViewmodel @Inject constructor(
 
         viewModelScope.launch {
             getDefaultLocationsUseCase().collect { defaults ->
-                val stations = stationsRepository.getStationsStream().stateIn(viewModelScope).value
+                val stations = stations.value
                 val fromName = stations.find { it.id == defaults.fromId }?.name
                 val toName = stations.find { it.id == defaults.toId }?.name
 
@@ -205,6 +206,29 @@ class HomeViewmodel @Inject constructor(
             HomeAction.RefreshStations -> refreshStations()
             is HomeAction.RefreshJourneys -> refreshJourneys(action.force)
             HomeAction.RefreshLocation -> refreshLocation()
+            is HomeAction.LoadMore -> loadMore(action.cursor)
+        }
+    }
+
+    private fun loadMore(cursor: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isFetchingMore = true) }
+            val stations = stations.value
+            val from = _state.value.fromLocation
+            val to = _state.value.toLocation
+            val fromId = stations.find { it.name == from }?.id ?: from.lowercase()
+            val toId = stations.find { it.name == to }?.id ?: to.lowercase()
+
+            when (val result = journeysRepository.loadMore(fromId, toId, cursor)) {
+                is ApiResult.Success -> {
+                    // DB update will trigger flow update
+                }
+
+                is ApiResult.Failure -> {
+                    _effect.emit(HomeEffect.ShowError(result.error.toDisplayMessage()))
+                }
+            }
+            _state.update { it.copy(isFetchingMore = false) }
         }
     }
 
