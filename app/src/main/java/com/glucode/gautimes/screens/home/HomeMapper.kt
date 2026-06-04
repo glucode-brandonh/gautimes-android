@@ -4,7 +4,6 @@ import com.glucode.gautimes.components.DepartureTimeCardData
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
 import com.glucode.gautimes.data.local.entities.JourneyWithLegs
-import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
@@ -18,7 +17,8 @@ class HomeMapper @Inject constructor() {
         isLoading: Boolean,
         isRefreshing: Boolean,
         userInteraction: UserInteractionState,
-        data: DataState
+        data: DataState,
+        isFromNear: Boolean
     ): HomeState {
         if (isLoading) return HomeState.Loading
 
@@ -30,31 +30,27 @@ class HomeMapper @Inject constructor() {
         val journeysResult = data.journeysResult
         val location = data.currentLocation
 
-        val fromStation = stations.find { it.name == selection.from }
-        val isFromNear = isLocationNearStation(location, fromStation, stations)
-
         val currentLat = location?.latitude
         val currentLong = location?.longitude
 
         val stationNames = stations.map { it.name }
-        val scheduleTimes = if (journeysResult is JourneyResult.Success) {
+        
+        val upcomingJourneys = if (journeysResult is JourneyResult.Success) {
             journeysResult.journeys
                 .filter { OffsetDateTime.parse(it.journey.departureTime).isAfter(now) }
-                .map { journey ->
-                    val firstLeg = journey.legs.firstOrNull()
-                    ScheduleTimeLineItemData(
-                        timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
-                        cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
-                        cartNumber = firstLeg?.carriages ?: 4
-                    )
-                }
+                .sortedBy { it.journey.departureTime }
         } else emptyList()
 
-        val nextJourney = if (journeysResult is JourneyResult.Success) {
-            journeysResult.journeys
-                .filter { OffsetDateTime.parse(it.journey.departureTime).isAfter(now) }
-                .minByOrNull { it.journey.departureTime }
-        } else null
+        val scheduleTimes = upcomingJourneys.map { journey ->
+            val firstLeg = journey.legs.firstOrNull()
+            ScheduleTimeLineItemData(
+                timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
+                cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
+                cartNumber = firstLeg?.carriages ?: 4
+            )
+        }
+
+        val nextJourney = upcomingJourneys.firstOrNull()
 
         return HomeState.HasData(
             data = HomeData(
@@ -117,22 +113,6 @@ class HomeMapper @Inject constructor() {
             disabledLocation = disabled,
             locationTarget = target
         )
-    }
-
-    private fun isLocationNearStation(
-        location: android.location.Location?,
-        station: StationEntity?,
-        allStations: List<StationEntity>
-    ): Boolean {
-        if (location == null || station == null || allStations.isEmpty()) return true
-        val closestStation = allStations.minByOrNull { s ->
-            val sLocation = android.location.Location("").apply {
-                latitude = s.latitude
-                longitude = s.longitude
-            }
-            location.distanceTo(sLocation)
-        }
-        return station.id == closestStation?.id
     }
 
     private fun String.toColor(): androidx.compose.ui.graphics.Color {

@@ -5,6 +5,7 @@ import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
 import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.data.repository.JourneyResult
+import java.util.Calendar
 
 sealed class HomeState {
     data object Loading : HomeState()
@@ -56,6 +57,37 @@ sealed class JourneysCheckState {
 enum class LocationTarget(val label: String) {
     FROM("From"),
     TO("To")
+}
+
+data class HomeUiState(
+    val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
+    val fromLocation: String = "Sandton",
+    val toLocation: String = "Hatfield",
+    val selectedDate: Long = Calendar.getInstance().timeInMillis,
+    val showLocationSheet: Boolean = false,
+    val locationTarget: LocationTarget = LocationTarget.FROM,
+    val healthCheck: HealthCheckState = HealthCheckState.Checking,
+    val stationsCheck: StationsCheckState = StationsCheckState.Checking,
+    val isProbeCachingEnabled: Boolean = true
+)
+
+sealed class HomeAction {
+    data object Refresh : HomeAction()
+    data class UpdateFromLocation(val location: String) : HomeAction()
+    data class UpdateToLocation(val location: String) : HomeAction()
+    data object FlipLocations : HomeAction()
+    data class UpdateDate(val millis: Long?) : HomeAction()
+    data class ToggleLocationSheet(val show: Boolean, val target: LocationTarget) : HomeAction()
+    data object ToggleProbeCaching : HomeAction()
+    data object RefreshHealth : HomeAction()
+    data object RefreshStations : HomeAction()
+    data class RefreshJourneys(val force: Boolean = false) : HomeAction()
+    data object RefreshLocation : HomeAction()
+}
+
+sealed class HomeEffect {
+    data class ShowError(val message: String) : HomeEffect()
 }
 
 data class SelectionState(

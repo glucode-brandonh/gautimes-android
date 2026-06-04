@@ -3,6 +3,7 @@ package com.glucode.gautimes.utils
 import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -26,7 +27,8 @@ object DateUtils {
     fun formatIsoTime(isoTime: String): String {
         return try {
             val odt = OffsetDateTime.parse(isoTime)
-            val adjusted = odt.plusHours(2)
+            val zoneId = ZoneId.of("Africa/Johannesburg")
+            val adjusted = odt.atZoneSameInstant(zoneId)
             val formatter = DateTimeFormatter.ofPattern("HH:mm")
             adjusted.format(formatter)
         } catch (e: Exception) {

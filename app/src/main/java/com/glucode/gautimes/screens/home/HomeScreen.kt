@@ -1,5 +1,6 @@
 package com.glucode.gautimes.screens.home
 
+import android.widget.Toast
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.gautimes.BuildConfig
@@ -37,6 +39,7 @@ import com.glucode.gautimes.components.LocationSelectorBottomSheet
 import com.glucode.gautimes.components.DepartureTimeCard
 import com.glucode.gautimes.components.ScheduleTimeLineItem
 import com.glucode.gautimes.components.ScheduleTimeLineItemSkeleton
+import com.glucode.gautimes.components.StatusMessage
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.screens.home.ui.DatePickerModal
 import com.glucode.gautimes.screens.home.ui.LocationSelection
@@ -49,6 +52,17 @@ import com.glucode.gautimes.screens.home.ui.debug.StationsStatusChip
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltViewModel()) {
     val uiState by viewmodel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewmodel.uiEffect.collect { effect ->
+            when (effect) {
+                is HomeEffect.ShowError -> {
+                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         when (val state = uiState) {
@@ -66,7 +80,7 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
 
     PullToRefreshBox(
         isRefreshing = data.isRefreshing,
-        onRefresh = { viewmodel.refresh() },
+        onRefresh = { viewmodel.onAction(HomeAction.Refresh) },
         modifier = Modifier.fillMaxSize()
     ) {
         LazyColumn(
@@ -75,22 +89,29 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                 .padding(horizontal = 16.dp)
         ) {
             item {
-                showDatePicker = HomeAssistChips(showDatePicker, data, viewmodel)
+                HomeAssistChips(
+                    data = data,
+                    onDateClick = { showDatePicker = true },
+                    onAction = viewmodel::onAction
+                )
 
                 LocationSelection(
                     fromLocation = data.fromLocation,
                     toLocation = data.toLocation,
                     isFromNear = data.isFromNear,
                     onLocationChange = { target ->
-                        viewmodel.toggleLocationSheet(true, target)
+                        viewmodel.onAction(HomeAction.ToggleLocationSheet(true, target))
                     },
                     onFlipLocations = {
-                        viewmodel.flipLocations()
+                        viewmodel.onAction(HomeAction.FlipLocations)
                     }
                 )
 
                 Spacer(modifier = Modifier.size(8.dp))
-                DepartureTimeCard(data = data.progress, onClick = {})
+                DepartureTimeCard(
+                    data = data.progress,
+                    onClick = { viewmodel.onAction(HomeAction.RefreshJourneys(force = true)) }
+                )
                 Spacer(modifier = Modifier.size(8.dp))
                 InfoSection(info = data.infoText)
                 Spacer(modifier = Modifier.size(8.dp))
@@ -106,52 +127,14 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
 
                 is JourneyResult.Error -> {
                     item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CloudOff,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(
-                                journeyResult.message,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        StatusMessage(message = journeyResult.message)
                     }
                 }
 
                 is JourneyResult.Success -> {
                     if (data.scheduleTimes.isEmpty()) {
                         item {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 32.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CloudOff,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text(
-                                    "No schedule found",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            StatusMessage(message = "No schedule found")
                         }
                     } else {
                         items(data.scheduleTimes.size) { index ->
@@ -168,7 +151,7 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
 
     if (showDatePicker) {
         DatePickerModal(
-            onDateSelected = { viewmodel.updateDate(it) },
+            onDateSelected = { viewmodel.onAction(HomeAction.UpdateDate(it)) },
             onDismiss = { showDatePicker = false }
         )
     }
@@ -178,11 +161,11 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
             data = data.locationSection,
             onDismissRequest = { location, target ->
                 if (target == LocationTarget.FROM) {
-                    viewmodel.updateFromLocation(location)
+                    viewmodel.onAction(HomeAction.UpdateFromLocation(location))
                 } else {
-                    viewmodel.updateToLocation(location)
+                    viewmodel.onAction(HomeAction.UpdateToLocation(location))
                 }
-                viewmodel.toggleLocationSheet(false, target)
+                viewmodel.onAction(HomeAction.ToggleLocationSheet(false, target))
             },
         )
     }
@@ -190,11 +173,10 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
 
 @Composable
 private fun HomeAssistChips(
-    showDatePicker: Boolean,
     data: HomeData,
-    viewmodel: HomeViewmodel
-): Boolean {
-    var showDatePicker1 = showDatePicker
+    onDateClick: () -> Unit,
+    onAction: (HomeAction) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -202,7 +184,7 @@ private fun HomeAssistChips(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AssistChip(onClick = { showDatePicker1 = true }, label = {
+        AssistChip(onClick = onDateClick, label = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -218,30 +200,29 @@ private fun HomeAssistChips(
         if (BuildConfig.DEBUG) {
             HealthStatusChip(
                 healthCheck = data.healthCheck,
-                onClick = viewmodel::refreshHealth
+                onClick = { onAction(HomeAction.RefreshHealth) }
             )
             StationsStatusChip(
                 stationsCheck = data.stationsCheck,
-                onClick = viewmodel::refreshStations
+                onClick = { onAction(HomeAction.RefreshStations) }
             )
             JourneysStatusChip(
                 journeysCheck = data.journeysCheck,
-                onClick = { viewmodel.refreshJourneys(force = true) }
+                onClick = { onAction(HomeAction.RefreshJourneys(force = true)) }
             )
             CacheModeChip(
                 isCachingEnabled = data.isProbeCachingEnabled,
-                onClick = viewmodel::toggleProbeCaching
+                onClick = { onAction(HomeAction.ToggleProbeCaching) }
             )
             if (data.currentLat != null && data.currentLong != null) {
                 LocationDebugChip(
                     lat = data.currentLat,
                     lon = data.currentLong,
-                    onClick = viewmodel::refreshLocation
+                    onClick = { onAction(HomeAction.RefreshLocation) }
                 )
             }
         }
     }
-    return showDatePicker1
 }
 
 @Composable
@@ -254,5 +235,3 @@ fun InfoSection(info: HomeInfoText) {
         Text(info.description)
     }
 }
-
-
