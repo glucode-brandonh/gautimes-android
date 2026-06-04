@@ -7,14 +7,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.glucode.gautimes.screens.home.HomeScreen
+import com.glucode.gautimes.screens.settings.SettingsScreen
 import com.glucode.gautimes.ui.theme.GautimesTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -53,10 +52,17 @@ fun LocationPermissionWrapper(content: @Composable () -> Unit) {
     content()
 }
 
-@PreviewScreenSizes
 @Composable
 fun GautimesApp() {
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        HomeScreen(modifier = Modifier.padding(innerPadding))
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = "home") {
+        composable("home") {
+            HomeScreen(
+                onSettingsClick = { navController.navigate("settings") }
+            )
+        }
+        composable("settings") {
+            SettingsScreen(onBackClick = { navController.popBackStack() })
+        }
     }
 }

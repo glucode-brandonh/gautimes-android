@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.glucode.gautimes.data.local.GautimesDatabase
 import com.glucode.gautimes.data.local.dao.JourneyDao
 import com.glucode.gautimes.data.local.dao.StationDao
+import com.glucode.gautimes.data.local.dao.UserSettingsDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,7 +23,9 @@ object DatabaseModule {
             context,
             GautimesDatabase::class.java,
             "gautimes.db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
 
     @Provides
     fun provideStationDao(database: GautimesDatabase): StationDao =
@@ -31,4 +34,8 @@ object DatabaseModule {
     @Provides
     fun provideJourneyDao(database: GautimesDatabase): JourneyDao =
         database.journeyDao()
+
+    @Provides
+    fun provideUserSettingsDao(database: GautimesDatabase): UserSettingsDao =
+        database.userSettingsDao()
 }

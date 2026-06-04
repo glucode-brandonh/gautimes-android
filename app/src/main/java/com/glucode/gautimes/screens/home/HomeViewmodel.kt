@@ -9,6 +9,7 @@ import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.data.repository.JourneysRepository
 import com.glucode.gautimes.data.repository.LocationRepository
 import com.glucode.gautimes.data.repository.StationsRepository
+import com.glucode.gautimes.domain.GetDefaultLocationsUseCase
 import com.glucode.gautimes.domain.GetNearestStationUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -39,7 +40,8 @@ class HomeViewmodel @Inject constructor(
     private val journeysRepository: JourneysRepository,
     private val locationRepository: LocationRepository,
     private val homeMapper: HomeMapper,
-    private val getNearestStationUseCase: GetNearestStationUseCase
+    private val getNearestStationUseCase: GetNearestStationUseCase,
+    private val getDefaultLocationsUseCase: GetDefaultLocationsUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -172,7 +174,22 @@ class HomeViewmodel @Inject constructor(
         onAction(HomeAction.RefreshStations)
         onAction(HomeAction.RefreshJourneys())
         onAction(HomeAction.RefreshHealth)
-        _state.update { it.copy(isLoading = false) }
+
+        viewModelScope.launch {
+            getDefaultLocationsUseCase().collect { defaults ->
+                val stations = stationsRepository.getStationsStream().stateIn(viewModelScope).value
+                val fromName = stations.find { it.id == defaults.fromId }?.name
+                val toName = stations.find { it.id == defaults.toId }?.name
+
+                if (fromName != null) {
+                    onAction(HomeAction.UpdateFromLocation(fromName))
+                }
+                if (toName != null) {
+                    onAction(HomeAction.UpdateToLocation(toName))
+                }
+                _state.update { it.copy(isLoading = false) }
+            }
+        }
     }
 
     fun onAction(action: HomeAction) {

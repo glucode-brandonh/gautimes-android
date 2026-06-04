@@ -36,7 +36,11 @@ android {
         val baseUrl = localProperty("TRAIN_TIMES_BASE_URL", "http://localhost:9292/")
             .let { if (it.endsWith("/")) it else "$it/" }
         buildConfigField("String", "TRAIN_TIMES_BASE_URL", baseUrl.asBuildConfigString())
-        buildConfigField("String", "TRAIN_TIMES_API_KEY", localProperty("TRAIN_TIMES_API_KEY", "").asBuildConfigString())
+        buildConfigField(
+            "String",
+            "TRAIN_TIMES_API_KEY",
+            localProperty("TRAIN_TIMES_API_KEY", "").asBuildConfigString()
+        )
     }
 
     buildTypes {
@@ -85,6 +89,7 @@ dependencies {
 
     // For hiltViewModel() usage inside Compose screens
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.navigation.compose)
 
     // Networking
     implementation(libs.retrofit.core)

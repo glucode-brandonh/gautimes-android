@@ -15,12 +15,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,8 +39,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.gautimes.BuildConfig
-import com.glucode.gautimes.components.LocationSelectorBottomSheet
 import com.glucode.gautimes.components.DepartureTimeCard
+import com.glucode.gautimes.components.LocationSelectorBottomSheet
 import com.glucode.gautimes.components.ScheduleTimeLineItem
 import com.glucode.gautimes.components.ScheduleTimeLineItemSkeleton
 import com.glucode.gautimes.components.StatusMessage
@@ -49,8 +53,13 @@ import com.glucode.gautimes.screens.home.ui.debug.JourneysStatusChip
 import com.glucode.gautimes.screens.home.ui.debug.LocationDebugChip
 import com.glucode.gautimes.screens.home.ui.debug.StationsStatusChip
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltViewModel()) {
+fun HomeScreen(
+    modifier: Modifier = Modifier,
+    viewmodel: HomeViewmodel = hiltViewModel(),
+    onSettingsClick: () -> Unit = {}
+) {
     val uiState by viewmodel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -64,11 +73,29 @@ fun HomeScreen(modifier: Modifier = Modifier, viewmodel: HomeViewmodel = hiltVie
         }
     }
 
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        when (val state = uiState) {
-            is HomeState.Loading -> CircularProgressIndicator()
-            is HomeState.Error -> Text(text = "Error: ${state.message}")
-            is HomeState.HasData -> HomeContent(data = state.data, viewmodel = viewmodel)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Guatimes") },
+                actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(imageVector = Icons.Outlined.Settings, contentDescription = "Settings")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center
+        ) {
+            when (val state = uiState) {
+                is HomeState.Loading -> CircularProgressIndicator()
+                is HomeState.Error -> Text(text = "Error: ${state.message}")
+                is HomeState.HasData -> HomeContent(data = state.data, viewmodel = viewmodel)
+            }
         }
     }
 }

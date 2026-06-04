@@ -20,6 +20,7 @@ kotlinxSerialization = "1.10.0"
 hilt = "2.59.2"
 ksp = "2.2.10-2.0.2"
 hiltNavigationCompose = "1.2.0"
+navigationCompose = "2.8.8"
 room = "2.8.4"
 playServicesLocation = "21.3.0"
 
@@ -46,6 +47,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
