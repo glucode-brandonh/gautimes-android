@@ -182,7 +182,7 @@ class HomeViewmodel @Inject constructor(
             val location = data.currentLocation
 
             val fromStation = stations.find { it.name == selection.from }
-            val isFromNear = isLocationNearStation(location, fromStation)
+            val isFromNear = isLocationNearStation(location, fromStation, stations)
 
             val currentLat = location?.latitude
             val currentLong = location?.longitude
@@ -381,18 +381,21 @@ class HomeViewmodel @Inject constructor(
 
     private fun isLocationNearStation(
         location: android.location.Location?,
-        station: StationEntity?
+        station: StationEntity?,
+        allStations: List<StationEntity>
     ): Boolean {
-        if (location == null || station == null) return true
-        val stationLocation = android.location.Location("").apply {
-            latitude = station.latitude
-            longitude = station.longitude
+        if (location == null || station == null || allStations.isEmpty()) return true
+        val closestStation = allStations.minByOrNull { s ->
+            val sLocation = android.location.Location("").apply {
+                latitude = s.latitude
+                longitude = s.longitude
+            }
+            location.distanceTo(sLocation)
         }
-        return location.distanceTo(stationLocation) <= PROXIMITY_THRESHOLD_METERS
+        return station.id == closestStation?.id
     }
 
     companion object {
-        private const val PROXIMITY_THRESHOLD_METERS = 15000 // 30km
     }
 }
 

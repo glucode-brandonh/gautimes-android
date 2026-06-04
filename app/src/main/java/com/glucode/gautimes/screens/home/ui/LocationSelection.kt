@@ -59,7 +59,7 @@ fun LocationSelection(
                     Spacer(modifier = Modifier.size(8.dp))
                     AssistChip(
                         onClick = {},
-                        label = { Text("Not near you") },
+                        label = { Text("Not the nearest to you") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Warning,
