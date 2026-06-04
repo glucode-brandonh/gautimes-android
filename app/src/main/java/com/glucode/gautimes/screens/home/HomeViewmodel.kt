@@ -162,7 +162,8 @@ class HomeViewmodel @Inject constructor(
             state.isFetchingMore,
             userInteraction,
             data,
-            isFromNear
+            isFromNear,
+            nearestStation?.name
         )
     }.stateIn(
         scope = viewModelScope,

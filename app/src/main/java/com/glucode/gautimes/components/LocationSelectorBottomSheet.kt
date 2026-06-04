@@ -37,7 +37,8 @@ data class LocationSelectorBottomSheetData(
     val locations: List<String> = emptyList(),
     val disabledLocation: String = "",
     val selectedLocation: String = "",
-    val locationTarget: LocationTarget = LocationTarget.FROM
+    val locationTarget: LocationTarget = LocationTarget.FROM,
+    val nearestLocation: String? = null
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,6 +104,7 @@ fun LocationSelectorContent(
                 selected = location == selectedLocation,
                 name = location,
                 disabled = location == data.disabledLocation,
+                isNearest = location == data.nearestLocation,
                 onClick = {
                     onSelectionChange(location)
                 }
@@ -118,6 +120,7 @@ fun LocationSelectionCard(
     name: String = "",
     selected: Boolean = false,
     disabled: Boolean = false,
+    isNearest: Boolean = false,
     onClick: () -> Unit = {}
 ) {
     Card(
@@ -132,10 +135,20 @@ fun LocationSelectionCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = name,
-                color = if (disabled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = name,
+                    color = if (disabled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface
+                )
+                if (isNearest) {
+                    Spacer(Modifier.size(8.dp))
+                    Text(
+                        text = "nearest",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
             if (selected) {
                 Icon(
                     imageVector = Icons.Default.Check,

@@ -19,7 +19,8 @@ class HomeMapper @Inject constructor() {
         isFetchingMore: Boolean,
         userInteraction: UserInteractionState,
         data: DataState,
-        isFromNear: Boolean
+        isFromNear: Boolean,
+        nearestStationName: String? = null
     ): HomeState {
         if (isLoading) return HomeState.Loading
 
@@ -83,7 +84,8 @@ class HomeMapper @Inject constructor() {
                     locationSheet.target,
                     selection.from,
                     selection.to,
-                    stationNames
+                    stationNames,
+                    nearestStationName
                 )
             )
         )
@@ -109,7 +111,8 @@ class HomeMapper @Inject constructor() {
         target: LocationTarget,
         fromLocation: String,
         toLocation: String,
-        availableLocations: List<String> = emptyList()
+        availableLocations: List<String> = emptyList(),
+        nearestStationName: String? = null
     ): LocationSelectorBottomSheetData {
         val selected = if (target == LocationTarget.FROM) fromLocation else toLocation
         val disabled = if (target == LocationTarget.FROM) toLocation else fromLocation
@@ -117,7 +120,8 @@ class HomeMapper @Inject constructor() {
             locations = availableLocations,
             selectedLocation = selected,
             disabledLocation = disabled,
-            locationTarget = target
+            locationTarget = target,
+            nearestLocation = if (target == LocationTarget.FROM) nearestStationName else null
         )
     }
 
