@@ -3,19 +3,12 @@ package com.glucode.gautimes.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.glucode.gautimes.BuildConfig
-import com.glucode.gautimes.components.LocationSelectorBottomSheetData
-import com.glucode.gautimes.components.DepartureTimeCardData
-import com.glucode.gautimes.components.ScheduleTimeLineItemData
-import com.glucode.gautimes.data.local.entities.JourneyWithLegs
-import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.data.repository.ApiResult
 import com.glucode.gautimes.data.repository.HealthRepository
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.data.repository.JourneysRepository
 import com.glucode.gautimes.data.repository.LocationRepository
 import com.glucode.gautimes.data.repository.StationsRepository
-import com.glucode.gautimes.ui.theme.cartYellow
-import com.glucode.gautimes.utils.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -31,8 +24,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
@@ -44,7 +35,8 @@ class HomeViewmodel @Inject constructor(
     private val healthRepository: HealthRepository,
     private val stationsRepository: StationsRepository,
     private val journeysRepository: JourneysRepository,
-    private val locationRepository: LocationRepository
+    private val locationRepository: LocationRepository,
+    private val homeMapper: HomeMapper
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
@@ -170,73 +162,7 @@ class HomeViewmodel @Inject constructor(
         dataState,
         ticker.onStart { emit(Unit) }
     ) { isLoading, isRefreshing, userInteraction, data, _ ->
-        val now = OffsetDateTime.now(ZoneOffset.UTC)
-        if (isLoading) {
-            HomeState.Loading
-        } else {
-            val selection = userInteraction.selection
-            val locationSheet = userInteraction.locationSheet
-            val serviceProbe = data.serviceProbe
-            val stations = data.stations
-            val journeysResult = data.journeysResult
-            val location = data.currentLocation
-
-            val fromStation = stations.find { it.name == selection.from }
-            val isFromNear = isLocationNearStation(location, fromStation, stations)
-
-            val currentLat = location?.latitude
-            val currentLong = location?.longitude
-
-            val stationNames = stations.map { it.name }.ifEmpty { locations }
-            val scheduleTimes = if (journeysResult is JourneyResult.Success) {
-                journeysResult.journeys
-                    .filter { OffsetDateTime.parse(it.journey.departureTime).isAfter(now) }
-                    .map { journey ->
-                        val firstLeg = journey.legs.firstOrNull()
-                        ScheduleTimeLineItemData(
-                            timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
-                            cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
-                            cartNumber = firstLeg?.carriages ?: 4
-                        )
-                    }
-            } else emptyList()
-
-            val nextJourney = if (journeysResult is JourneyResult.Success) {
-                journeysResult.journeys
-                    .filter { OffsetDateTime.parse(it.journey.departureTime).isAfter(now) }
-                    .minByOrNull { it.journey.departureTime }
-            } else null
-
-            HomeState.HasData(
-                data = HomeData(
-                    fromLocation = selection.from,
-                    toLocation = selection.to,
-                    dateLabel = DateUtils.formatDateLabel(selection.dateMillis),
-                    scheduleTimes = scheduleTimes,
-                    journeyResult = journeysResult,
-                    isRefreshing = isRefreshing,
-                    infoText = HomeInfoText(
-                        title = "Coming up next",
-                        description = "Peak fares will be in-affect until 18:45 tonight"
-                    ),
-                    healthCheck = serviceProbe.healthCheck,
-                    stationsCheck = serviceProbe.stationsCheck,
-                    journeysCheck = serviceProbe.journeysCheck,
-                    isProbeCachingEnabled = serviceProbe.isCachingEnabled,
-                    isFromNear = isFromNear,
-                    currentLat = currentLat,
-                    currentLong = currentLong,
-                    progress = buildProgressCard(nextJourney),
-                    showLocationSheet = locationSheet.show,
-                    locationSection = buildLocationSelector(
-                        locationSheet.target,
-                        selection.from,
-                        selection.to,
-                        stationNames
-                    )
-                )
-            )
-        }
+        homeMapper.mapToHomeState(isLoading, isRefreshing, userInteraction, data)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -341,163 +267,11 @@ class HomeViewmodel @Inject constructor(
         }
     }
 
-    fun buildProgressCard(nextJourney: JourneyWithLegs?): DepartureTimeCardData {
-        val progress = if (nextJourney != null) {
-            val minutesUntil = DateUtils.getMinutesUntil(nextJourney.journey.departureTime)
-            DepartureTimeCardData(
-                timeValue = minutesUntil.toString(),
-                progressDescription = "MINUTES UNTIL DEPARTURE",
-                arrivalTime = DateUtils.formatIsoTime(nextJourney.journey.arrivalTime)
-            )
-        } else {
-            DepartureTimeCardData(
-                timeValue = "--",
-                progressDescription = "NO MORE JOURNEYS"
-            )
-        }
-        return progress
-    }
-
-    fun buildLocationSelector(
-        target: LocationTarget,
-        fromLocation: String,
-        toLocation: String,
-        availableLocations: List<String> = locations
-    ): LocationSelectorBottomSheetData {
-        val selected = if (target == LocationTarget.FROM) fromLocation else toLocation
-        val disabled = if (target == LocationTarget.FROM) toLocation else fromLocation
-        return LocationSelectorBottomSheetData(
-            locations = availableLocations,
-            selectedLocation = selected,
-            disabledLocation = disabled,
-            locationTarget = target
-        )
-    }
-
     fun toggleLocationSheet(show: Boolean, target: LocationTarget) {
         _locationTarget.value = target
         _showLocationSheet.value = show
     }
 
-    private fun isLocationNearStation(
-        location: android.location.Location?,
-        station: StationEntity?,
-        allStations: List<StationEntity>
-    ): Boolean {
-        if (location == null || station == null || allStations.isEmpty()) return true
-        val closestStation = allStations.minByOrNull { s ->
-            val sLocation = android.location.Location("").apply {
-                latitude = s.latitude
-                longitude = s.longitude
-            }
-            location.distanceTo(sLocation)
-        }
-        return station.id == closestStation?.id
-    }
-
     companion object {
     }
 }
-
-data class SelectionState(
-    val from: String,
-    val to: String,
-    val dateMillis: Long
-)
-
-data class LocationSheetState(
-    val show: Boolean,
-    val target: LocationTarget
-)
-
-data class UserInteractionState(
-    val selection: SelectionState,
-    val locationSheet: LocationSheetState
-)
-
-data class DataState(
-    val serviceProbe: ServiceProbeState,
-    val stations: List<StationEntity>,
-    val journeysResult: JourneyResult,
-    val currentLocation: android.location.Location?
-)
-
-data class ServiceProbeState(
-    val healthCheck: HealthCheckState,
-    val stationsCheck: StationsCheckState,
-    val journeysCheck: JourneysCheckState,
-    val isCachingEnabled: Boolean
-)
-
-data class HomeData(
-    val fromLocation: String = "",
-    val toLocation: String = "",
-    val dateLabel: String = "Today",
-    val scheduleTimes: List<ScheduleTimeLineItemData> = emptyList(),
-    val journeyResult: JourneyResult = JourneyResult.Loading,
-    val isRefreshing: Boolean = false,
-    val infoText: HomeInfoText = HomeInfoText(),
-    val healthCheck: HealthCheckState = HealthCheckState.Checking,
-    val stationsCheck: StationsCheckState = StationsCheckState.Checking,
-    val journeysCheck: JourneysCheckState = JourneysCheckState.Idle,
-    val isProbeCachingEnabled: Boolean = true,
-    val isFromNear: Boolean = true,
-    val currentLat: Double? = null,
-    val currentLong: Double? = null,
-    val progress: DepartureTimeCardData = DepartureTimeCardData(),
-    val locationSection: LocationSelectorBottomSheetData = LocationSelectorBottomSheetData(locations = locations),
-    val showLocationSheet: Boolean = false,
-)
-
-enum class LocationTarget(val label: String) {
-    FROM("From"),
-    TO("To")
-}
-
-data class HomeInfoText(val title: String = "", val description: String = "")
-
-sealed class HealthCheckState {
-    data object Checking : HealthCheckState()
-    data class Online(val asOf: String) : HealthCheckState()
-    data class Offline(val reason: String) : HealthCheckState()
-}
-
-sealed class StationsCheckState {
-    data object Checking : StationsCheckState()
-    data class Loaded(val count: Int, val asOf: String) : StationsCheckState()
-    data class Failed(val reason: String) : StationsCheckState()
-}
-
-sealed class JourneysCheckState {
-    data object Idle : JourneysCheckState()
-    data object Checking : JourneysCheckState()
-    data class Loaded(val count: Int, val asOf: String) : JourneysCheckState()
-    data class Failed(val reason: String) : JourneysCheckState()
-}
-
-sealed class HomeState {
-    object Loading : HomeState()
-    data class Error(val message: String) : HomeState()
-    data class HasData(val data: HomeData) : HomeState()
-}
-
-private fun String.toColor(): androidx.compose.ui.graphics.Color {
-    return try {
-        androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(this))
-    } catch (e: Exception) {
-        androidx.compose.ui.graphics.Color.Gray
-    }
-}
-
-private val locations = listOf(
-    "Sandton",
-    "Park",
-    "Rosebank",
-    "Marlboro",
-    "Rhodesfield",
-    "O.R. Tambo",
-    "Midrand",
-    "Centurion",
-    "Pretoria",
-    "Hatfield"
-)
