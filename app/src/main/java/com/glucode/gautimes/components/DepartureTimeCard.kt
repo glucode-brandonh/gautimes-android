@@ -42,7 +42,7 @@ fun DepartureTimeCard(
         ) {
             Text(
                 "NEXT TRAIN LEAVING IN",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelLargeEmphasized,
             )
             FallingPixelNumberDisplay(
                 number = data.timeValue

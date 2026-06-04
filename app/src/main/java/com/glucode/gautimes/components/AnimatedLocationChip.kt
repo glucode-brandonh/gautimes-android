@@ -13,6 +13,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import com.glucode.gautimes.ui.theme.GautimesTheme
 
 @Composable
 fun AnimatedLocationChip(
@@ -41,4 +43,15 @@ fun AnimatedLocationChip(
             }
         }
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AnimatedLocationChipPreview() {
+    GautimesTheme {
+        AnimatedLocationChip(
+            location = "Hatfield",
+            onClick = {}
+        )
+    }
 }
