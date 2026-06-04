@@ -17,9 +17,11 @@ class HomeMapper @Inject constructor() {
         isLoading: Boolean,
         isRefreshing: Boolean,
         isFetchingMore: Boolean,
+        isGrantingPermission: Boolean,
         userInteraction: UserInteractionState,
         data: DataState,
         isFromNear: Boolean,
+        showLocationPermissionCard: Boolean,
         nearestStationName: String? = null
     ): HomeState {
         if (isLoading) return HomeState.Loading
@@ -71,6 +73,7 @@ class HomeMapper @Inject constructor() {
                     title = "Coming up next",
                     description = "Peak fares will be in-affect until 18:45 tonight"
                 ),
+                isGrantingPermission = isGrantingPermission,
                 healthCheck = serviceProbe.healthCheck,
                 stationsCheck = serviceProbe.stationsCheck,
                 journeysCheck = serviceProbe.journeysCheck,
@@ -80,6 +83,7 @@ class HomeMapper @Inject constructor() {
                 currentLong = currentLong,
                 progress = buildProgressCard(nextJourney),
                 showLocationSheet = locationSheet.show,
+                showLocationPermissionCard = showLocationPermissionCard,
                 locationSection = buildLocationSelector(
                     locationSheet.target,
                     selection.from,

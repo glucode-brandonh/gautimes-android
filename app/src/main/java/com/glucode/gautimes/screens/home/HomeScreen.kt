@@ -1,6 +1,9 @@
 package com.glucode.gautimes.screens.home
 
+import android.Manifest
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.DepartureTimeCard
+import com.glucode.gautimes.components.LocationPermissionInfoCard
 import com.glucode.gautimes.components.LocationSelectorBottomSheet
 import com.glucode.gautimes.components.ScheduleTimeLineItem
 import com.glucode.gautimes.components.ScheduleTimeLineItemSkeleton
@@ -107,6 +111,15 @@ fun HomeScreen(
 fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
     var showDatePicker by remember { mutableStateOf(false) }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        viewmodel.onAction(HomeAction.SetGrantingPermission(false))
+        if (result.values.any { it }) {
+            viewmodel.onAction(HomeAction.RefreshLocation)
+        }
+    }
+
     PullToRefreshBox(
         isRefreshing = data.isRefreshing,
         onRefresh = { viewmodel.onAction(HomeAction.Refresh) },
@@ -123,6 +136,25 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                     onDateClick = { showDatePicker = true },
                     onAction = viewmodel::onAction
                 )
+
+                if (data.showLocationPermissionCard) {
+                    Spacer(modifier = Modifier.size(8.dp))
+                    LocationPermissionInfoCard(
+                        isLoading = data.isGrantingPermission,
+                        onGrantAccessClick = {
+                            viewmodel.onAction(HomeAction.SetGrantingPermission(true))
+                            permissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        },
+                        onDismissClick = {
+                            viewmodel.onAction(HomeAction.DismissLocationPermissionCard)
+                        }
+                    )
+                }
 
                 LocationSelection(
                     fromLocation = data.fromLocation,

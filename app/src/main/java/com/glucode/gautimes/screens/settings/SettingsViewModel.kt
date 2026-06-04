@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.data.local.entities.UserSettingsEntity
+import com.glucode.gautimes.data.repository.PermissionRepository
 import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.domain.GetUserSettingsUseCase
 import com.glucode.gautimes.domain.SaveUserSettingsUseCase
@@ -21,7 +22,8 @@ data class SettingsUiState(
     val userSettings: UserSettingsEntity = UserSettingsEntity(),
     val stations: List<StationEntity> = emptyList(),
     val showLocationSheet: Boolean = false,
-    val locationTarget: SettingsLocationTarget = SettingsLocationTarget.DEFAULT_FROM
+    val locationTarget: SettingsLocationTarget = SettingsLocationTarget.DEFAULT_FROM,
+    val isLocationPermissionGranted: Boolean = false
 )
 
 enum class SettingsLocationTarget {
@@ -37,7 +39,8 @@ enum class SettingsLocationTarget {
 class SettingsViewModel @Inject constructor(
     private val getUserSettingsUseCase: GetUserSettingsUseCase,
     private val saveUserSettingsUseCase: SaveUserSettingsUseCase,
-    private val stationsRepository: StationsRepository
+    private val stationsRepository: StationsRepository,
+    private val permissionRepository: PermissionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -48,7 +51,8 @@ class SettingsViewModel @Inject constructor(
     ) { state, settings, stations ->
         state.copy(
             userSettings = if (state.userSettings == UserSettingsEntity()) settings else state.userSettings,
-            stations = stations
+            stations = stations,
+            isLocationPermissionGranted = permissionRepository.isLocationPermissionGranted()
         )
     }.stateIn(
         scope = viewModelScope,
@@ -78,6 +82,10 @@ class SettingsViewModel @Inject constructor(
             is SettingsAction.SelectLocation -> {
                 updateLocation(action.target, action.stationId)
                 _uiState.update { it.copy(showLocationSheet = false) }
+            }
+
+            SettingsAction.PermissionChanged -> {
+                _uiState.update { it.copy(isLocationPermissionGranted = permissionRepository.isLocationPermissionGranted()) }
             }
         }
     }
@@ -111,4 +119,5 @@ sealed class SettingsAction {
     data object CloseLocationPicker : SettingsAction()
     data class SelectLocation(val target: SettingsLocationTarget, val stationId: String) :
         SettingsAction()
+    data object PermissionChanged : SettingsAction()
 }

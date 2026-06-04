@@ -7,11 +7,13 @@ import com.glucode.gautimes.data.remote.TrainTimesApi
 import com.glucode.gautimes.data.repository.DefaultHealthRepository
 import com.glucode.gautimes.data.repository.DefaultJourneysRepository
 import com.glucode.gautimes.data.repository.DefaultLocationRepository
+import com.glucode.gautimes.data.repository.DefaultPermissionRepository
 import com.glucode.gautimes.data.repository.DefaultStationsRepository
 import com.glucode.gautimes.data.repository.DefaultUserSettingsRepository
 import com.glucode.gautimes.data.repository.HealthRepository
 import com.glucode.gautimes.data.repository.JourneysRepository
 import com.glucode.gautimes.data.repository.LocationRepository
+import com.glucode.gautimes.data.repository.PermissionRepository
 import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.data.repository.UserSettingsRepository
 import dagger.Binds
@@ -63,6 +65,12 @@ abstract class RepositoryModule {
     abstract fun bindUserSettingsRepository(
         repository: DefaultUserSettingsRepository
     ): UserSettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPermissionRepository(
+        repository: DefaultPermissionRepository
+    ): PermissionRepository
 }
 
 @Module

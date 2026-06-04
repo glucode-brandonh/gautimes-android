@@ -23,6 +23,7 @@ data class HomeData(
     val isFetchingMore: Boolean = false,
     val nextCursor: String? = null,
     val infoText: HomeInfoText = HomeInfoText(),
+    val isGrantingPermission: Boolean = false,
     val healthCheck: HealthCheckState = HealthCheckState.Checking,
     val stationsCheck: StationsCheckState = StationsCheckState.Checking,
     val journeysCheck: JourneysCheckState = JourneysCheckState.Idle,
@@ -33,6 +34,7 @@ data class HomeData(
     val progress: DepartureTimeCardData = DepartureTimeCardData(),
     val locationSection: LocationSelectorBottomSheetData = LocationSelectorBottomSheetData(),
     val showLocationSheet: Boolean = false,
+    val showLocationPermissionCard: Boolean = false,
 )
 
 data class HomeInfoText(val title: String = "", val description: String = "")
@@ -69,6 +71,7 @@ data class HomeUiState(
     val toLocation: String = "Hatfield",
     val selectedDate: Long = Calendar.getInstance().timeInMillis,
     val showLocationSheet: Boolean = false,
+    val isGrantingPermission: Boolean = false,
     val locationTarget: LocationTarget = LocationTarget.FROM,
     val healthCheck: HealthCheckState = HealthCheckState.Checking,
     val stationsCheck: StationsCheckState = StationsCheckState.Checking,
@@ -88,6 +91,8 @@ sealed class HomeAction {
     data class RefreshJourneys(val force: Boolean = false) : HomeAction()
     data object RefreshLocation : HomeAction()
     data class LoadMore(val cursor: String) : HomeAction()
+    data object DismissLocationPermissionCard : HomeAction()
+    data class SetGrantingPermission(val isGranting: Boolean) : HomeAction()
 }
 
 sealed class HomeEffect {

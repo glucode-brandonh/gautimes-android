@@ -8,6 +8,7 @@ import com.glucode.gautimes.data.repository.HealthRepository
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.data.repository.JourneysRepository
 import com.glucode.gautimes.data.repository.LocationRepository
+import com.glucode.gautimes.data.repository.PermissionRepository
 import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.domain.GetDefaultLocationsUseCase
 import com.glucode.gautimes.domain.GetNearestStationUseCase
@@ -39,6 +40,7 @@ class HomeViewmodel @Inject constructor(
     private val stationsRepository: StationsRepository,
     private val journeysRepository: JourneysRepository,
     private val locationRepository: LocationRepository,
+    private val permissionRepository: PermissionRepository,
     private val homeMapper: HomeMapper,
     private val getNearestStationUseCase: GetNearestStationUseCase,
     private val getDefaultLocationsUseCase: GetDefaultLocationsUseCase
@@ -57,6 +59,8 @@ class HomeViewmodel @Inject constructor(
             delay(1.minutes)
         }
     }
+
+    private val permissionCardDismissed = MutableStateFlow(permissionRepository.isLocationCardDismissed())
 
     private val stations = stationsRepository.getStationsStream()
         .stateIn(
@@ -150,19 +154,24 @@ class HomeViewmodel @Inject constructor(
         _state,
         userInteractionState,
         dataState,
+        permissionCardDismissed,
         ticker.onStart { emit(Unit) }
-    ) { state, userInteraction, data, _ ->
+    ) { state, userInteraction, data, dismissed, _ ->
         val fromStation = data.stations.find { it.name == state.fromLocation }
         val nearestStation = getNearestStationUseCase(data.currentLocation, data.stations)
         val isFromNear = fromStation?.id == nearestStation?.id || nearestStation == null
+
+        val showPermissionCard = !dismissed && !permissionRepository.isLocationPermissionGranted()
 
         homeMapper.mapToHomeState(
             state.isLoading,
             state.isRefreshing,
             state.isFetchingMore,
+            state.isGrantingPermission,
             userInteraction,
             data,
             isFromNear,
+            showPermissionCard,
             nearestStation?.name
         )
     }.stateIn(
@@ -208,7 +217,14 @@ class HomeViewmodel @Inject constructor(
             is HomeAction.RefreshJourneys -> refreshJourneys(action.force)
             HomeAction.RefreshLocation -> refreshLocation()
             is HomeAction.LoadMore -> loadMore(action.cursor)
+            HomeAction.DismissLocationPermissionCard -> dismissLocationPermissionCard()
+            is HomeAction.SetGrantingPermission -> _state.update { it.copy(isGrantingPermission = action.isGranting) }
         }
+    }
+
+    private fun dismissLocationPermissionCard() {
+        permissionRepository.dismissLocationCard()
+        permissionCardDismissed.value = true
     }
 
     private fun loadMore(cursor: String) {

@@ -1,5 +1,8 @@
 package com.glucode.gautimes.screens.settings
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -35,6 +39,14 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        if (result.values.any { it }) {
+            viewModel.onAction(SettingsAction.PermissionChanged)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -161,6 +173,40 @@ fun SettingsScreen(
                     }
                 )
             }
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                "Permissions",
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            ListItem(
+                headlineContent = { Text("Location Access") },
+                supportingContent = {
+                    Text(
+                        if (uiState.isLocationPermissionGranted) "Access Granted"
+                        else "Access not granted. Tap to enable."
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = if (uiState.isLocationPermissionGranted) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outline
+                    )
+                },
+                modifier = Modifier.clickable(enabled = !uiState.isLocationPermissionGranted) {
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                }
+            )
         }
     }
 
