@@ -33,13 +33,15 @@ import com.glucode.gautimes.R
 import com.glucode.gautimes.ui.theme.GautimesTheme
 import com.glucode.gautimes.ui.theme.cartGray
 import com.glucode.gautimes.ui.theme.cartYellow
+import com.glucode.gautimes.utils.DateUtils
 import com.glucode.gautimes.utils.pulse
 
 data class ScheduleTimeLineItemData(
     val id: String = "",
-    val timeText: String = "00:00",
     val cartColor: Color = Color.White,
-    val cartNumber: Int = 0
+    val cartNumber: Int = 0,
+    val departureTime: String = "",
+    val arrivalTime: String = ""
 )
 
 @Composable
@@ -80,14 +82,17 @@ fun ScheduleTimeLineItem(
             contentAlignment = Alignment.Center
         ) {
             AnimatedContent(
-                targetState = data.timeText,
+                targetState = data.departureTime,
                 transitionSpec = {
                     (slideInVertically { height -> height } + fadeIn())
                         .togetherWith(slideOutVertically { height -> -height } + fadeOut())
                 },
                 label = "TimeAnimation"
             ) { targetTime ->
-                Text(text = targetTime, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = DateUtils.formatIsoTime(targetTime),
+                    style = MaterialTheme.typography.titleLarge
+                )
             }
             Row(
                 modifier = Modifier
@@ -153,16 +158,44 @@ fun ScheduleTimeLineItemListPreview(modifier: Modifier = Modifier) {
 }
 
 private val times = listOf(
-    ScheduleTimeLineItemData(timeText = "06:15", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "07:00", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "08:30", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "09:45", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "11:00", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "12:15", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "13:30", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "14:45", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "16:00", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "17:15", cartColor = cartGray, cartNumber = 8),
-    ScheduleTimeLineItemData(timeText = "18:30", cartColor = cartYellow, cartNumber = 4),
-    ScheduleTimeLineItemData(timeText = "19:45", cartColor = cartGray, cartNumber = 8)
+    ScheduleTimeLineItemData(cartColor = cartYellow, cartNumber = 4),
+    ScheduleTimeLineItemData(cartColor = cartGray, cartNumber = 8),
+    ScheduleTimeLineItemData(cartColor = cartYellow, cartNumber = 4),
+    ScheduleTimeLineItemData(cartColor = cartGray, cartNumber = 8),
+    ScheduleTimeLineItemData(cartColor = cartYellow, cartNumber = 4),
+    ScheduleTimeLineItemData(
+        departureTime = "12:15",
+        cartColor = cartGray,
+        cartNumber = 8
+    ),
+    ScheduleTimeLineItemData(
+        departureTime = "13:30",
+        cartColor = cartYellow,
+        cartNumber = 4
+    ),
+    ScheduleTimeLineItemData(
+        departureTime = "14:45",
+        cartColor = cartGray,
+        cartNumber = 8
+    ),
+    ScheduleTimeLineItemData(
+        departureTime = "16:00",
+        cartColor = cartYellow,
+        cartNumber = 4
+    ),
+    ScheduleTimeLineItemData(
+        departureTime = "17:15",
+        cartColor = cartGray,
+        cartNumber = 8
+    ),
+    ScheduleTimeLineItemData(
+        departureTime = "18:30",
+        cartColor = cartYellow,
+        cartNumber = 4
+    ),
+    ScheduleTimeLineItemData(
+        departureTime = "19:45",
+        cartColor = cartGray,
+        cartNumber = 8
+    )
 )

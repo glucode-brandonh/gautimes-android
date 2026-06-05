@@ -216,6 +216,7 @@ class HomeViewmodel @Inject constructor(
             HomeAction.RefreshStations -> refreshStations()
             is HomeAction.RefreshJourneys -> refreshJourneys(action.force)
             HomeAction.RefreshLocation -> refreshLocation()
+            HomeAction.TestNotification -> testNotification()
             is HomeAction.LoadMore -> loadMore(action.cursor)
             HomeAction.DismissLocationPermissionCard -> dismissLocationPermissionCard()
             is HomeAction.SetGrantingPermission -> _state.update { it.copy(isGrantingPermission = action.isGranting) }
@@ -300,6 +301,12 @@ class HomeViewmodel @Inject constructor(
 
     private fun refreshLocation() {
         refreshLocationTrigger.tryEmit(Unit)
+    }
+
+    private fun testNotification() {
+        viewModelScope.launch {
+            _effect.emit(HomeEffect.RunNotificationTest)
+        }
     }
 
     private fun toggleProbeCaching() {

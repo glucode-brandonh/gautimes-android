@@ -53,9 +53,10 @@ class HomeMapper @Inject constructor() {
             val firstLeg = journey.legs.firstOrNull()
             ScheduleTimeLineItemData(
                 id = journey.journey.id,
-                timeText = DateUtils.formatIsoTime(journey.journey.departureTime),
                 cartColor = firstLeg?.lineColour?.toColor() ?: cartYellow,
-                cartNumber = firstLeg?.carriages ?: 4
+                cartNumber = firstLeg?.carriages ?: 4,
+                departureTime = journey.journey.departureTime,
+                arrivalTime = journey.journey.arrivalTime
             )
         }
 
@@ -106,7 +107,8 @@ class HomeMapper @Inject constructor() {
             DepartureTimeCardData(
                 timeValue = minutesUntil.toString(),
                 progressDescription = "MINUTES UNTIL DEPARTURE",
-                arrivalTime = DateUtils.formatIsoTime(nextJourney.journey.arrivalTime),
+                arrivalTime = nextJourney.journey.arrivalTime,
+                departureTime = nextJourney.journey.departureTime,
                 price = price
             )
         } else {

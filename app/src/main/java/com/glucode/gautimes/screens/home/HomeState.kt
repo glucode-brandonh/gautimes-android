@@ -90,6 +90,7 @@ sealed class HomeAction {
     data object RefreshStations : HomeAction()
     data class RefreshJourneys(val force: Boolean = false) : HomeAction()
     data object RefreshLocation : HomeAction()
+    data object TestNotification : HomeAction()
     data class LoadMore(val cursor: String) : HomeAction()
     data object DismissLocationPermissionCard : HomeAction()
     data class SetGrantingPermission(val isGranting: Boolean) : HomeAction()
@@ -97,6 +98,7 @@ sealed class HomeAction {
 
 sealed class HomeEffect {
     data class ShowError(val message: String) : HomeEffect()
+    data object RunNotificationTest : HomeEffect()
 }
 
 data class SelectionState(

@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,11 +25,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.glucode.gautimes.ui.theme.GautimesTheme
+import com.glucode.gautimes.utils.DateUtils
 
 data class DepartureTimeCardData(
     val timeValue: String = "",
     val progressDescription: String = "",
     val arrivalTime: String = "",
+    val departureTime: String = "",
     val price: String? = null,
     val stops: List<String> = emptyList()
 )
@@ -36,6 +40,7 @@ data class DepartureTimeCardData(
 fun DepartureTimeCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
+    onReminderClick: () -> Unit = {},
     data: DepartureTimeCardData = DepartureTimeCardData()
 ) {
     Card(
@@ -86,6 +91,20 @@ fun DepartureTimeCard(
                     "NEXT TRAIN LEAVING IN",
                     style = MaterialTheme.typography.labelLargeEmphasized,
                 )
+
+                IconButton(
+                    onClick = onReminderClick,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NotificationsActive,
+                        contentDescription = "Set Reminder",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
             FallingPixelNumberDisplay(
                 number = data.timeValue
@@ -95,7 +114,7 @@ fun DepartureTimeCard(
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
-                "Arrive at: ${data.arrivalTime.ifEmpty { "- -" }}",
+                "Arrive at: ${if (data.arrivalTime.isNotEmpty()) DateUtils.formatIsoTime(data.arrivalTime) else "- -"}",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

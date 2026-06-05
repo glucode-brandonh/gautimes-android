@@ -1,6 +1,8 @@
 package com.glucode.gautimes.screens.home
 
 import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -42,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.DepartureTimeCard
@@ -53,11 +56,14 @@ import com.glucode.gautimes.components.StatusMessage
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.screens.home.ui.DatePickerModal
 import com.glucode.gautimes.screens.home.ui.LocationSelection
+import com.glucode.gautimes.screens.home.ui.ReminderDialog
+import com.glucode.gautimes.service.NotificationService
 import com.glucode.gautimes.screens.home.ui.debug.CacheModeChip
 import com.glucode.gautimes.screens.home.ui.debug.HealthStatusChip
 import com.glucode.gautimes.screens.home.ui.debug.JourneysStatusChip
 import com.glucode.gautimes.screens.home.ui.debug.LocationDebugChip
 import com.glucode.gautimes.screens.home.ui.debug.StationsStatusChip
+import java.time.OffsetDateTime
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -67,13 +73,28 @@ fun HomeScreen(
     onSettingsClick: () -> Unit = {}
 ) {
     val uiState by viewmodel.uiState.collectAsState()
-    val context = LocalContext.current
+    val localContext = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewmodel.uiEffect.collect { effect ->
             when (effect) {
                 is HomeEffect.ShowError -> {
-                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(localContext, effect.message, Toast.LENGTH_SHORT).show()
+                }
+
+                HomeEffect.RunNotificationTest -> {
+                    val now = OffsetDateTime.now()
+                    val dummySchedule = listOf(
+                        now.plusSeconds(5).toString() to now.plusMinutes(5).toString(),
+                        now.plusSeconds(35).toString() to now.plusMinutes(6).toString(),
+                        now.plusSeconds(65).toString() to now.plusMinutes(7).toString()
+                    )
+                    NotificationService.start(
+                        localContext,
+                        "Test Station A",
+                        "Test Station B",
+                        dummySchedule
+                    )
                 }
             }
         }
@@ -106,17 +127,46 @@ fun HomeScreen(
     }
 }
 
+data class ReminderInfo(
+    val from: String,
+    val to: String,
+    val departureTime: String,
+    val arrivalTime: String
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
+    val localContext = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
+    var showReminderDialog by remember { mutableStateOf(false) }
+    var selectedReminder by remember { mutableStateOf<ReminderInfo?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
         viewmodel.onAction(HomeAction.SetGrantingPermission(false))
-        if (result.values.any { it }) {
+        if (result[Manifest.permission.ACCESS_FINE_LOCATION] == true || 
+            result[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
             viewmodel.onAction(HomeAction.RefreshLocation)
+        }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            selectedReminder?.let { info ->
+                val scheduleList = data.scheduleTimes
+                    .filter { it.departureTime >= info.departureTime }
+                    .map { it.departureTime to it.arrivalTime }
+                NotificationService.start(
+                    localContext,
+                    info.from,
+                    info.to,
+                    scheduleList
+                )
+            }
         }
     }
 
@@ -171,7 +221,16 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                 Spacer(modifier = Modifier.size(8.dp))
                 DepartureTimeCard(
                     data = data.progress,
-                    onClick = { viewmodel.onAction(HomeAction.RefreshJourneys(force = true)) }
+                    onClick = { viewmodel.onAction(HomeAction.RefreshJourneys(force = true)) },
+                    onReminderClick = {
+                        selectedReminder = ReminderInfo(
+                            from = data.fromLocation,
+                            to = data.toLocation,
+                            departureTime = data.progress.departureTime,
+                            arrivalTime = data.progress.arrivalTime
+                        )
+                        showReminderDialog = true
+                    }
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 InfoSection(info = data.infoText)
@@ -201,7 +260,16 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                         items(data.scheduleTimes, key = { it.id }) { itemData ->
                             ScheduleTimeLineItem(
                                 modifier = Modifier.animateItem(),
-                                data = itemData
+                                data = itemData,
+                                onClick = {
+                                    selectedReminder = ReminderInfo(
+                                        from = data.fromLocation,
+                                        to = data.toLocation,
+                                        departureTime = itemData.departureTime,
+                                        arrivalTime = itemData.arrivalTime
+                                    )
+                                    showReminderDialog = true
+                                }
                             )
                             Spacer(modifier = Modifier.size(8.dp))
                         }
@@ -240,6 +308,44 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
         DatePickerModal(
             onDateSelected = { viewmodel.onAction(HomeAction.UpdateDate(it)) },
             onDismiss = { showDatePicker = false }
+        )
+    }
+
+    if (showReminderDialog) {
+        ReminderDialog(
+            onDismiss = { showReminderDialog = false },
+            onSetReminder = {
+                val info = selectedReminder
+                if (info != null) {
+                    val scheduleList = data.scheduleTimes
+                        .filter { it.departureTime >= info.departureTime }
+                        .map { it.departureTime to it.arrivalTime }
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (ContextCompat.checkSelfPermission(
+                                localContext,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            NotificationService.start(
+                                localContext,
+                                info.from,
+                                info.to,
+                                scheduleList
+                            )
+                        }
+                    } else {
+                        NotificationService.start(
+                            localContext,
+                            info.from,
+                            info.to,
+                            scheduleList
+                        )
+                    }
+                }
+            }
         )
     }
 
@@ -296,6 +402,10 @@ private fun HomeAssistChips(
             JourneysStatusChip(
                 journeysCheck = data.journeysCheck,
                 onClick = { onAction(HomeAction.RefreshJourneys(force = true)) }
+            )
+            AssistChip(
+                onClick = { onAction(HomeAction.TestNotification) },
+                label = { Text("🔔 Test Notification") }
             )
             CacheModeChip(
                 isCachingEnabled = data.isProbeCachingEnabled,
