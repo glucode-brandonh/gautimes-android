@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.Card
@@ -33,7 +34,9 @@ data class DepartureTimeCardData(
     val arrivalTime: String = "",
     val departureTime: String = "",
     val price: String? = null,
-    val stops: List<String> = emptyList()
+    val stops: List<String> = emptyList(),
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 @Composable
@@ -41,6 +44,7 @@ fun DepartureTimeCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onReminderClick: () -> Unit = {},
+    onMapClick: (Double, Double) -> Unit = { _, _ -> },
     data: DepartureTimeCardData = DepartureTimeCardData()
 ) {
     Card(
@@ -113,10 +117,31 @@ fun DepartureTimeCard(
                 data.progressDescription,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Text(
-                "Arrive at: ${if (data.arrivalTime.isNotEmpty()) DateUtils.formatIsoTime(data.arrivalTime) else "- -"}",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (data.latitude != null && data.longitude != null) {
+                    IconButton(
+                        onClick = { onMapClick(data.latitude, data.longitude) },
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Map,
+                            contentDescription = "Navigate to station",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    "Arrive at: ${if (data.arrivalTime.isNotEmpty()) DateUtils.formatIsoTime(data.arrivalTime) else "- -"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
     }
 }
@@ -128,7 +153,9 @@ fun DepartureTimeCardPreview(modifier: Modifier = Modifier) {
         DepartureTimeCard(
             data = DepartureTimeCardData(
                 timeValue = "17",
-                progressDescription = "minutes until departure"
+                progressDescription = "minutes until departure",
+                latitude = -26.107,
+                longitude = 28.056
             ), onClick = {})
     }
 }

@@ -230,6 +230,11 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                             arrivalTime = data.progress.arrivalTime
                         )
                         showReminderDialog = true
+                    },
+                    onMapClick = { lat, lon ->
+                        val uri = "geo:$lat,$lon?q=$lat,$lon"
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri))
+                        localContext.startActivity(intent)
                     }
                 )
                 Spacer(modifier = Modifier.size(8.dp))

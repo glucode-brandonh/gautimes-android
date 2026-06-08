@@ -70,7 +70,7 @@ class NotificationService : Service() {
 
         scheduleUpdate()
 
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     private fun createNotificationChannel() {
@@ -148,6 +148,7 @@ class NotificationService : Service() {
                 .setWhen(chronometerTime)
                 .setUsesChronometer(true)
                 .setChronometerCountDown(true)
+                .setDeleteIntent(stopPendingIntent)
                 .addAction(
                     Notification.Action.Builder(
                         null, "Train caught!", stopPendingIntent
@@ -178,6 +179,7 @@ class NotificationService : Service() {
             .setStyle(NotificationCompat.BigTextStyle())
             .setWhen(chronometerTime)
             .setUsesChronometer(true)
+            .setDeleteIntent(stopPendingIntent)
             .addAction(0, "Train caught!", stopPendingIntent)
 
         // Enable countdown if supported by the OS
