@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,6 +30,7 @@ import com.glucode.gautimes.ui.theme.GautimesTheme
 import com.glucode.gautimes.utils.DateUtils
 
 data class DepartureTimeCardData(
+    val id: String = "",
     val timeValue: String = "",
     val progressDescription: String = "",
     val arrivalTime: String = "",
@@ -45,6 +47,7 @@ fun DepartureTimeCard(
     onClick: () -> Unit = {},
     onReminderClick: () -> Unit = {},
     onMapClick: (Double, Double) -> Unit = { _, _ -> },
+    onShareClick: () -> Unit = {},
     data: DepartureTimeCardData = DepartureTimeCardData()
 ) {
     Card(
@@ -121,11 +124,25 @@ fun DepartureTimeCard(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
+                IconButton(
+                    onClick = onShareClick,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
                 if (data.latitude != null && data.longitude != null) {
                     IconButton(
                         onClick = { onMapClick(data.latitude, data.longitude) },
                         modifier = Modifier
-                            .align(Alignment.CenterStart)
+                            .align(Alignment.CenterEnd)
                             .size(24.dp)
                     ) {
                         Icon(

@@ -111,6 +111,7 @@ class HomeMapper @Inject constructor() {
             val fromStation = stations.find { it.id == nextJourney.journey.fromStationId }
 
             DepartureTimeCardData(
+                id = nextJourney.journey.id,
                 timeValue = minutesUntil.toString(),
                 progressDescription = "MINUTES UNTIL DEPARTURE",
                 arrivalTime = nextJourney.journey.arrivalTime,

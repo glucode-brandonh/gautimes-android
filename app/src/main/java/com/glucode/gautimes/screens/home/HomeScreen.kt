@@ -1,7 +1,9 @@
 package com.glucode.gautimes.screens.home
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -58,6 +61,7 @@ import com.glucode.gautimes.screens.home.ui.DatePickerModal
 import com.glucode.gautimes.screens.home.ui.LocationSelection
 import com.glucode.gautimes.screens.home.ui.ReminderDialog
 import com.glucode.gautimes.service.NotificationService
+import com.glucode.gautimes.utils.DateUtils
 import com.glucode.gautimes.screens.home.ui.debug.CacheModeChip
 import com.glucode.gautimes.screens.home.ui.debug.HealthStatusChip
 import com.glucode.gautimes.screens.home.ui.debug.JourneysStatusChip
@@ -70,7 +74,8 @@ import java.time.OffsetDateTime
 fun HomeScreen(
     modifier: Modifier = Modifier,
     viewmodel: HomeViewmodel = hiltViewModel(),
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onTripDetailsClick: (String) -> Unit = {}
 ) {
     val uiState by viewmodel.uiState.collectAsState()
     val localContext = LocalContext.current
@@ -121,7 +126,11 @@ fun HomeScreen(
             when (val state = uiState) {
                 is HomeState.Loading -> CircularProgressIndicator()
                 is HomeState.Error -> Text(text = "Error: ${state.message}")
-                is HomeState.HasData -> HomeContent(data = state.data, viewmodel = viewmodel)
+                is HomeState.HasData -> HomeContent(
+                    data = state.data,
+                    viewmodel = viewmodel,
+                    onTripDetailsClick = onTripDetailsClick
+                )
             }
         }
     }
@@ -136,7 +145,11 @@ data class ReminderInfo(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
+fun HomeContent(
+    data: HomeData,
+    viewmodel: HomeViewmodel,
+    onTripDetailsClick: (String) -> Unit
+) {
     val localContext = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
     var showReminderDialog by remember { mutableStateOf(false) }
@@ -221,7 +234,7 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                 Spacer(modifier = Modifier.size(8.dp))
                 DepartureTimeCard(
                     data = data.progress,
-                    onClick = { viewmodel.onAction(HomeAction.RefreshJourneys(force = true)) },
+                    onClick = { onTripDetailsClick(data.progress.id) },
                     onReminderClick = {
                         selectedReminder = ReminderInfo(
                             from = data.fromLocation,
@@ -233,8 +246,23 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                     },
                     onMapClick = { lat, lon ->
                         val uri = "geo:$lat,$lon?q=$lat,$lon"
-                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri))
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
                         localContext.startActivity(intent)
+                    },
+                    onShareClick = {
+                        val departure = DateUtils.formatIsoTime(data.progress.departureTime)
+                        val arrival = DateUtils.formatIsoTime(data.progress.arrivalTime)
+                        val mapsLink = if (data.progress.latitude != null && data.progress.longitude != null) {
+                            "\n\nDirections to pickup: https://www.google.com/maps/dir/?api=1&destination=${data.progress.latitude},${data.progress.longitude}"
+                        } else ""
+                        val shareText = "My train is departing in ${data.progress.timeValue} minutes from ${data.fromLocation} to ${data.toLocation}. Departure Time: $departure, Arrival Time: $arrival$mapsLink"
+                        val sendIntent: Intent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, null)
+                        localContext.startActivity(shareIntent)
                     }
                 )
                 Spacer(modifier = Modifier.size(8.dp))
@@ -284,11 +312,11 @@ fun HomeContent(data: HomeData, viewmodel: HomeViewmodel) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 16.dp),
+                                        .padding(bottom = 8.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (data.isFetchingMore) {
-                                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                        CircularProgressIndicator(modifier = Modifier.size(24.dp).padding(top = 8.dp),)
                                     } else {
                                         TextButton(
                                             onClick = {
@@ -410,7 +438,12 @@ private fun HomeAssistChips(
             )
             AssistChip(
                 onClick = { onAction(HomeAction.TestNotification) },
-                label = { Text("🔔 Test Notification") }
+                label = { Text("🔔 Test Notification") },
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
             )
             CacheModeChip(
                 isCachingEnabled = data.isProbeCachingEnabled,

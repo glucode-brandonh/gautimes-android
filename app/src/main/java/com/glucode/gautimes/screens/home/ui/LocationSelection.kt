@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.glucode.gautimes.components.AnimatedLocationChip
 import com.glucode.gautimes.screens.home.LocationTarget
@@ -68,9 +67,9 @@ fun LocationSelection(
                             )
                         },
                         colors = AssistChipDefaults.assistChipColors(
-                            containerColor = Color(0xFFFF9800),
-                            labelColor = Color.White,
-                            leadingIconContentColor = Color.White
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
                         ),
                         border = null
                     )
