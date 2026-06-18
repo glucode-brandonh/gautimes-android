@@ -21,10 +21,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
@@ -82,21 +84,21 @@ class HomeViewmodel @Inject constructor(
         )
 
     private val selectionState = combine(
-        _state.map { it.fromLocation },
-        _state.map { it.toLocation },
-        _state.map { it.selectedDate }
+        _state.map { it.fromLocation }.distinctUntilChanged(),
+        _state.map { it.toLocation }.distinctUntilChanged(),
+        _state.map { it.selectedDate }.distinctUntilChanged()
     ) { from, to, date ->
         SelectionState(from, to, date)
-    }
+    }.distinctUntilChanged()
 
     @OptIn(
         kotlinx.coroutines.ExperimentalCoroutinesApi::class,
         kotlinx.coroutines.FlowPreview::class
     )
     private val journeys = combine(
-        selectionState,
-        stations,
-        refreshJourneysTrigger.onStart { emit(false) }
+        selectionState.onEach { println("GauDebug " + "selections firing") },
+        stations.onEach { println("GauDebug " + "stations firing") },
+        refreshJourneysTrigger.onStart { emit(false) }.onEach { println("GauDebug " + "refresh firing") }
     ) { selection, stations, force ->
         val fromId = stations.find { it.name == selection.from }?.id ?: selection.from.lowercase()
         val toId = stations.find { it.name == selection.to }?.id ?: selection.to.lowercase()

@@ -4,7 +4,7 @@ import com.glucode.gautimes.data.local.dao.JourneyDao
 import com.glucode.gautimes.data.local.entities.JourneyEntity
 import com.glucode.gautimes.data.local.entities.JourneyLegEntity
 import com.glucode.gautimes.data.local.entities.JourneyQueryMetadataEntity
- import com.glucode.gautimes.data.remote.TrainTimesApi
+import com.glucode.gautimes.data.remote.TrainTimesApi
 import com.glucode.gautimes.data.remote.dto.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -29,40 +29,45 @@ class DefaultJourneysRepository @Inject constructor(
     json: Json
 ) : BaseRepository(json), JourneysRepository {
 
-    override fun getJourneys(from: String, to: String, forceRefresh: Boolean): Flow<JourneyResult> = channelFlow {
-        send(JourneyResult.Loading)
+    override fun getJourneys(from: String, to: String, forceRefresh: Boolean): Flow<JourneyResult> =
+        channelFlow {
+            send(JourneyResult.Loading)
 
-        val initialMetadata = journeyDao.getMetadataForRoute(from, to)
-        val isFresh = initialMetadata != null && isCacheFresh(initialMetadata.lastUpdatedMillis)
+            val initialMetadata = journeyDao.getMetadataForRoute(from, to)
+            val isFresh = initialMetadata != null && isCacheFresh(initialMetadata.lastUpdatedMillis)
 
-        if (forceRefresh || !isFresh) {
-            launch {
-                val result = execute {
-                    api.getJourneys(
-                        from = from,
-                        to = to,
-                        after = null,
-                        include = null
-                    )
-                }
-                if (result is ApiResult.Failure) {
-                    send(JourneyResult.Error(result.error.toDisplayMessage()))
-                } else if (result is ApiResult.Success) {
-                    saveToCache(from, to, result.value.data, result.value.meta.nextCursor)
+            if (forceRefresh || !isFresh) {
+                launch {
+                    val result = execute {
+                        api.getJourneys(
+                            from = from,
+                            to = to,
+                            after = null,
+                            include = null
+                        )
+                    }
+                    if (result is ApiResult.Failure) {
+                        send(JourneyResult.Error(result.error.toDisplayMessage()))
+                    } else if (result is ApiResult.Success) {
+                        printFirstAndLastSchedule(
+                            source = "get journeys",
+                            result.value.data.journeys
+                        )
+                        saveToCache(from, to, result.value.data, result.value.meta.nextCursor)
+                    }
                 }
             }
-        }
 
-        journeyDao.getJourneysStreamForRoute(from, to).collect { journeys ->
-            val metadata = journeyDao.getMetadataForRoute(from, to)
-            if (journeys.isNotEmpty()) {
-                send(JourneyResult.Success(journeys, nextCursor = metadata?.nextCursor))
-            } else if (isFresh) {
-                send(JourneyResult.Success(emptyList(), nextCursor = metadata?.nextCursor))
+            journeyDao.getJourneysStreamForRoute(from, to).collect { journeys ->
+                val metadata = journeyDao.getMetadataForRoute(from, to)
+                if (journeys.isNotEmpty()) {
+                    send(JourneyResult.Success(journeys, nextCursor = metadata?.nextCursor))
+                } else if (isFresh) {
+                    send(JourneyResult.Success(emptyList(), nextCursor = metadata?.nextCursor))
+                }
+                // If empty and not fresh, we wait for the network fetch launched above to update the DB
             }
-            // If empty and not fresh, we wait for the network fetch launched above to update the DB
         }
-    }
 
     override suspend fun loadMore(from: String, to: String, cursor: String): ApiResult<Unit> {
         val result = execute {
@@ -76,6 +81,7 @@ class DefaultJourneysRepository @Inject constructor(
 
         return when (result) {
             is ApiResult.Success -> {
+                printFirstAndLastSchedule(source = "load more", result.value.data.journeys)
                 appendToCache(from, to, result.value.data, result.value.meta.nextCursor)
                 ApiResult.Success(Unit, result.rateLimit)
             }
@@ -118,6 +124,13 @@ class DefaultJourneysRepository @Inject constructor(
 
         journeyDao.appendJourneysForRoute(journeyEntities, legEntities, metadata)
     }
+
+    fun printFirstAndLastSchedule(source: String, journeys: List<JourneyDto>) {
+        println("GauDebug Schedule Batch $source First Departure " + journeys.first().departureTime)
+        println("GauDebug Schedule Batch $source Last Departure " + journeys.last().departureTime)
+        println("GauDebug Schedule Batch $source Last Departure ---------")
+    }
+
 
     private fun JourneyDto.asEntity(from: String, to: String) = JourneyEntity(
         id = id,
