@@ -2,9 +2,7 @@ package com.glucode.gautimes.screens.home
 
 import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.DepartureTimeCard
@@ -56,20 +53,23 @@ import com.glucode.gautimes.components.LocationSelectorBottomSheet
 import com.glucode.gautimes.components.ScheduleTimeLineItem
 import com.glucode.gautimes.components.ScheduleTimeLineItemSkeleton
 import com.glucode.gautimes.components.StatusMessage
-import com.glucode.gautimes.data.repository.JourneyResult
-import com.glucode.gautimes.screens.home.ui.DatePickerModal
-import com.glucode.gautimes.screens.home.ui.LocationSelection
 import com.glucode.gautimes.components.reminders.ReminderHandler
 import com.glucode.gautimes.components.reminders.ReminderInfo
 import com.glucode.gautimes.components.reminders.rememberReminderState
-import com.glucode.gautimes.service.NotificationService
-import com.glucode.gautimes.utils.DateUtils
+import com.glucode.gautimes.components.sharing.ShareHandler
+import com.glucode.gautimes.components.sharing.ShareInfo
+import com.glucode.gautimes.components.sharing.rememberShareState
+import com.glucode.gautimes.data.repository.JourneyResult
+import com.glucode.gautimes.screens.home.ui.DatePickerModal
+import com.glucode.gautimes.screens.home.ui.LocationSelection
 import com.glucode.gautimes.screens.home.ui.debug.CacheModeChip
 import com.glucode.gautimes.screens.home.ui.debug.HealthStatusChip
 import com.glucode.gautimes.screens.home.ui.debug.JourneysStatusChip
 import com.glucode.gautimes.screens.home.ui.debug.LocationDebugChip
 import com.glucode.gautimes.screens.home.ui.debug.StationsStatusChip
+import com.glucode.gautimes.service.NotificationService
 import java.time.OffsetDateTime
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -150,6 +150,7 @@ fun HomeContent(
     val localContext = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
     val reminderState = rememberReminderState()
+    val shareState = rememberShareState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -162,6 +163,7 @@ fun HomeContent(
     }
 
     ReminderHandler(state = reminderState)
+    ShareHandler(state = shareState)
 
     PullToRefreshBox(
         isRefreshing = data.isRefreshing,
@@ -229,23 +231,20 @@ fun HomeContent(
                     },
                     onMapClick = { lat, lon ->
                         val uri = "geo:$lat,$lon?q=$lat,$lon"
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+                        val intent = Intent(Intent.ACTION_VIEW, uri.toUri())
                         localContext.startActivity(intent)
                     },
                     onShareClick = {
-                        val departure = DateUtils.formatIsoTime(data.progress.departureTime)
-                        val arrival = DateUtils.formatIsoTime(data.progress.arrivalTime)
-                        val mapsLink = if (data.progress.latitude != null && data.progress.longitude != null) {
-                            "\n\nDirections to pickup: https://www.google.com/maps/dir/?api=1&destination=${data.progress.latitude},${data.progress.longitude}"
-                        } else ""
-                        val shareText = "My train is departing in ${data.progress.timeValue} minutes from ${data.fromLocation} to ${data.toLocation}. Departure Time: $departure, Arrival Time: $arrival$mapsLink"
-                        val sendIntent: Intent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, shareText)
-                            type = "text/plain"
-                        }
-                        val shareIntent = Intent.createChooser(sendIntent, null)
-                        localContext.startActivity(shareIntent)
+                        val info = ShareInfo(
+                            from = data.fromLocation,
+                            to = data.toLocation,
+                            departureTime = data.progress.departureTime,
+                            arrivalTime = data.progress.arrivalTime,
+                            latitude = data.progress.latitude,
+                            longitude = data.progress.longitude,
+                            timeUntilDeparture = data.progress.timeValue
+                        )
+                        shareState.share(info)
                     }
                 )
                 Spacer(modifier = Modifier.size(8.dp))
@@ -293,7 +292,9 @@ fun HomeContent(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (data.isFetchingMore) {
-                                        CircularProgressIndicator(modifier = Modifier.size(24.dp).padding(top = 8.dp),)
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp).padding(top = 8.dp)
+                                        )
                                     } else {
                                         TextButton(
                                             onClick = {

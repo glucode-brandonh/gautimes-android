@@ -18,9 +18,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.NotificationsActive
 import com.glucode.gautimes.components.reminders.ReminderHandler
 import com.glucode.gautimes.components.reminders.rememberReminderState
+import com.glucode.gautimes.components.sharing.ShareHandler
+import com.glucode.gautimes.components.sharing.rememberShareState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -47,8 +50,10 @@ fun TripDetailsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val reminderState = rememberReminderState()
+    val shareState = rememberShareState()
 
     ReminderHandler(state = reminderState)
+    ShareHandler(state = shareState)
 
     Scaffold(
         topBar = {
@@ -63,6 +68,16 @@ fun TripDetailsScreen(
                     }
                 },
                 actions = {
+                    uiState.shareInfo?.let { info ->
+                        IconButton(onClick = {
+                            shareState.share(info)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share"
+                            )
+                        }
+                    }
                     uiState.reminderInfo?.let { info ->
                         IconButton(onClick = {
                             reminderState.triggerReminder(info, uiState.schedule)

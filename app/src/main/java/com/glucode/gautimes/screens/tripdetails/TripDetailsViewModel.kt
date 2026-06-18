@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.glucode.gautimes.components.reminders.ReminderInfo
+import com.glucode.gautimes.components.sharing.ShareInfo
 import com.glucode.gautimes.data.repository.JourneyResult
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
@@ -26,6 +27,7 @@ data class TripDetailsUiState(
     val isLoading: Boolean = true,
     val stations: List<StationUiData> = emptyList(),
     val reminderInfo: ReminderInfo? = null,
+    val shareInfo: ShareInfo? = null,
     val schedule: List<Pair<String, String>> = emptyList()
 )
 
@@ -90,6 +92,15 @@ class TripDetailsViewModel @Inject constructor(
                         arrivalTime = journey.journey.arrivalTime
                     )
 
+                    val shareInfo = ShareInfo(
+                        from = departureStation?.name ?: "Unknown",
+                        to = arrivalStation?.name ?: "Unknown",
+                        departureTime = journey.journey.departureTime,
+                        arrivalTime = journey.journey.arrivalTime,
+                        latitude = departureStation?.latitude,
+                        longitude = departureStation?.longitude
+                    )
+
                     // Fetch full schedule for reminders
                     val journeyResult = journeysRepository.getJourneys(
                         journey.journey.fromStationId,
@@ -104,6 +115,7 @@ class TripDetailsViewModel @Inject constructor(
                         isLoading = false,
                         stations = stationList,
                         reminderInfo = reminderInfo,
+                        shareInfo = shareInfo,
                         schedule = schedule
                     )
                 }
