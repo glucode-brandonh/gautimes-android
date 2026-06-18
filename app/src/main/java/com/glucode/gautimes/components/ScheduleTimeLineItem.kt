@@ -15,14 +15,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,7 +70,6 @@ fun ScheduleTimeLineItemSkeletonPreview() {
 fun ScheduleTimeLineItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
-    onReminderClick: () -> Unit = {},
     data: ScheduleTimeLineItemData = ScheduleTimeLineItemData()
 ) {
     Card(
@@ -104,20 +100,6 @@ fun ScheduleTimeLineItem(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = onReminderClick,
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.NotificationsActive,
-                        contentDescription = "Set Reminder",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.size(4.dp))
-
                 AssistChip(
                     colors = AssistChipDefaults.assistChipColors(
                         containerColor = data.cartColor,

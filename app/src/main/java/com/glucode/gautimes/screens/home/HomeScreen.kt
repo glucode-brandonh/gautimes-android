@@ -59,7 +59,9 @@ import com.glucode.gautimes.components.StatusMessage
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.screens.home.ui.DatePickerModal
 import com.glucode.gautimes.screens.home.ui.LocationSelection
-import com.glucode.gautimes.screens.home.ui.ReminderDialog
+import com.glucode.gautimes.components.reminders.ReminderHandler
+import com.glucode.gautimes.components.reminders.ReminderInfo
+import com.glucode.gautimes.components.reminders.rememberReminderState
 import com.glucode.gautimes.service.NotificationService
 import com.glucode.gautimes.utils.DateUtils
 import com.glucode.gautimes.screens.home.ui.debug.CacheModeChip
@@ -136,12 +138,7 @@ fun HomeScreen(
     }
 }
 
-data class ReminderInfo(
-    val from: String,
-    val to: String,
-    val departureTime: String,
-    val arrivalTime: String
-)
+// Removed ReminderInfo data class as it is now in com.glucode.gautimes.components.reminders
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,8 +149,7 @@ fun HomeContent(
 ) {
     val localContext = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
-    var showReminderDialog by remember { mutableStateOf(false) }
-    var selectedReminder by remember { mutableStateOf<ReminderInfo?>(null) }
+    val reminderState = rememberReminderState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -165,23 +161,7 @@ fun HomeContent(
         }
     }
 
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            selectedReminder?.let { info ->
-                val scheduleList = data.scheduleTimes
-                    .filter { it.departureTime >= info.departureTime }
-                    .map { it.departureTime to it.arrivalTime }
-                NotificationService.start(
-                    localContext,
-                    info.from,
-                    info.to,
-                    scheduleList
-                )
-            }
-        }
-    }
+    ReminderHandler(state = reminderState)
 
     PullToRefreshBox(
         isRefreshing = data.isRefreshing,
@@ -236,13 +216,16 @@ fun HomeContent(
                     data = data.progress,
                     onClick = { onTripDetailsClick(data.progress.id) },
                     onReminderClick = {
-                        selectedReminder = ReminderInfo(
+                        val info = ReminderInfo(
                             from = data.fromLocation,
                             to = data.toLocation,
                             departureTime = data.progress.departureTime,
                             arrivalTime = data.progress.arrivalTime
                         )
-                        showReminderDialog = true
+                        val scheduleList = data.scheduleTimes
+                            .filter { it.departureTime >= info.departureTime }
+                            .map { it.departureTime to it.arrivalTime }
+                        reminderState.triggerReminder(info, scheduleList)
                     },
                     onMapClick = { lat, lon ->
                         val uri = "geo:$lat,$lon?q=$lat,$lon"
@@ -297,15 +280,6 @@ fun HomeContent(
                                 onClick = {
                                     onTripDetailsClick(itemData.id)
                                 },
-                                onReminderClick = {
-                                    selectedReminder = ReminderInfo(
-                                        from = data.fromLocation,
-                                        to = data.toLocation,
-                                        departureTime = itemData.departureTime,
-                                        arrivalTime = itemData.arrivalTime
-                                    )
-                                    showReminderDialog = true
-                                }
                             )
                             Spacer(modifier = Modifier.size(8.dp))
                         }
@@ -344,44 +318,6 @@ fun HomeContent(
         DatePickerModal(
             onDateSelected = { viewmodel.onAction(HomeAction.UpdateDate(it)) },
             onDismiss = { showDatePicker = false }
-        )
-    }
-
-    if (showReminderDialog) {
-        ReminderDialog(
-            onDismiss = { showReminderDialog = false },
-            onSetReminder = {
-                val info = selectedReminder
-                if (info != null) {
-                    val scheduleList = data.scheduleTimes
-                        .filter { it.departureTime >= info.departureTime }
-                        .map { it.departureTime to it.arrivalTime }
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        if (ContextCompat.checkSelfPermission(
-                                localContext,
-                                Manifest.permission.POST_NOTIFICATIONS
-                            ) != PackageManager.PERMISSION_GRANTED
-                        ) {
-                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            NotificationService.start(
-                                localContext,
-                                info.from,
-                                info.to,
-                                scheduleList
-                            )
-                        }
-                    } else {
-                        NotificationService.start(
-                            localContext,
-                            info.from,
-                            info.to,
-                            scheduleList
-                        )
-                    }
-                }
-            }
         )
     }
 

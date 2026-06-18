@@ -17,4 +17,5 @@
 /captures
 .externalNativeBuild
 .cxx
-local.properties
+
+.artifacts/

@@ -1,4 +1,4 @@
-package com.glucode.gautimes.screens.home.ui
+package com.glucode.gautimes.components.reminders
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
