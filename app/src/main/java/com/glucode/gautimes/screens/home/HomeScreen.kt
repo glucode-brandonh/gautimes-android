@@ -295,6 +295,9 @@ fun HomeContent(
                                 modifier = Modifier.animateItem(),
                                 data = itemData,
                                 onClick = {
+                                    onTripDetailsClick(itemData.id)
+                                },
+                                onReminderClick = {
                                     selectedReminder = ReminderInfo(
                                         from = data.fromLocation,
                                         to = data.toLocation,
