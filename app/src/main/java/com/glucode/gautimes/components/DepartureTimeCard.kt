@@ -10,10 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -36,9 +34,7 @@ data class DepartureTimeCardData(
     val arrivalTime: String = "",
     val departureTime: String = "",
     val price: String? = null,
-    val stops: List<String> = emptyList(),
-    val latitude: Double? = null,
-    val longitude: Double? = null
+    val stops: List<String> = emptyList()
 )
 
 @Composable
@@ -46,8 +42,6 @@ fun DepartureTimeCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onReminderClick: () -> Unit = {},
-    onMapClick: (Double, Double) -> Unit = { _, _ -> },
-    onShareClick: () -> Unit = {},
     data: DepartureTimeCardData = DepartureTimeCardData()
 ) {
     Card(
@@ -124,36 +118,6 @@ fun DepartureTimeCard(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                IconButton(
-                    onClick = onShareClick,
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                if (data.latitude != null && data.longitude != null) {
-                    IconButton(
-                        onClick = { onMapClick(data.latitude, data.longitude) },
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Map,
-                            contentDescription = "Navigate to station",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
                 Text(
                     "Arrive at: ${if (data.arrivalTime.isNotEmpty()) DateUtils.formatIsoTime(data.arrivalTime) else "- -"}",
                     style = MaterialTheme.typography.bodyMedium,
@@ -170,9 +134,7 @@ fun DepartureTimeCardPreview(modifier: Modifier = Modifier) {
         DepartureTimeCard(
             data = DepartureTimeCardData(
                 timeValue = "17",
-                progressDescription = "minutes until departure",
-                latitude = -26.107,
-                longitude = 28.056
+                progressDescription = "minutes until departure"
             ), onClick = {})
     }
 }

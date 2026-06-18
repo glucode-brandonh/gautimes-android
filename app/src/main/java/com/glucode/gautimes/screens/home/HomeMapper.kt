@@ -4,7 +4,6 @@ import com.glucode.gautimes.components.DepartureTimeCardData
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
 import com.glucode.gautimes.data.local.entities.JourneyWithLegs
-import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
@@ -80,7 +79,7 @@ class HomeMapper @Inject constructor() {
                 isFromNear = isFromNear,
                 currentLat = currentLat,
                 currentLong = currentLong,
-                progress = buildProgressCard(nextJourney, stations),
+                progress = buildProgressCard(nextJourney),
                 showLocationSheet = locationSheet.show,
                 showLocationPermissionCard = showLocationPermissionCard,
                 locationSection = buildLocationSelector(
@@ -95,15 +94,12 @@ class HomeMapper @Inject constructor() {
     }
 
     private fun buildProgressCard(
-        nextJourney: JourneyWithLegs?,
-        stations: List<StationEntity>
+        nextJourney: JourneyWithLegs?
     ): DepartureTimeCardData {
         return if (nextJourney != null) {
             val minutesUntil = DateUtils.getMinutesUntil(nextJourney.journey.departureTime)
             val currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("en-ZA"))
             val price = currencyFormat.format(nextJourney.journey.totalFareZar)
-
-            val fromStation = stations.find { it.id == nextJourney.journey.fromStationId }
 
             DepartureTimeCardData(
                 id = nextJourney.journey.id,
@@ -111,9 +107,7 @@ class HomeMapper @Inject constructor() {
                 progressDescription = "MINUTES UNTIL DEPARTURE",
                 arrivalTime = nextJourney.journey.arrivalTime,
                 departureTime = nextJourney.journey.departureTime,
-                price = price,
-                latitude = fromStation?.latitude,
-                longitude = fromStation?.longitude
+                price = price
             )
         } else {
             DepartureTimeCardData(

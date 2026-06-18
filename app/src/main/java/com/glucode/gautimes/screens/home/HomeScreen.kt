@@ -1,7 +1,6 @@
 package com.glucode.gautimes.screens.home
 
 import android.Manifest
-import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.DepartureTimeCard
@@ -56,7 +54,6 @@ import com.glucode.gautimes.components.reminders.ReminderHandler
 import com.glucode.gautimes.components.reminders.ReminderInfo
 import com.glucode.gautimes.components.reminders.rememberReminderState
 import com.glucode.gautimes.components.sharing.ShareHandler
-import com.glucode.gautimes.components.sharing.ShareInfo
 import com.glucode.gautimes.components.sharing.rememberShareState
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.screens.home.ui.DatePickerModal
@@ -127,7 +124,6 @@ fun HomeContent(
     viewmodel: HomeViewmodel,
     onTripDetailsClick: (String) -> Unit
 ) {
-    val localContext = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
     val reminderState = rememberReminderState()
     val shareState = rememberShareState()
@@ -207,23 +203,6 @@ fun HomeContent(
                             .filter { it.departureTime >= info.departureTime }
                             .map { it.departureTime to it.arrivalTime }
                         reminderState.triggerReminder(info, scheduleList)
-                    },
-                    onMapClick = { lat, lon ->
-                        val uri = "geo:$lat,$lon?q=$lat,$lon"
-                        val intent = Intent(Intent.ACTION_VIEW, uri.toUri())
-                        localContext.startActivity(intent)
-                    },
-                    onShareClick = {
-                        val info = ShareInfo(
-                            from = data.fromLocation,
-                            to = data.toLocation,
-                            departureTime = data.progress.departureTime,
-                            arrivalTime = data.progress.arrivalTime,
-                            latitude = data.progress.latitude,
-                            longitude = data.progress.longitude,
-                            timeUntilDeparture = data.progress.timeValue
-                        )
-                        shareState.share(info)
                     }
                 )
                 Spacer(modifier = Modifier.size(8.dp))
