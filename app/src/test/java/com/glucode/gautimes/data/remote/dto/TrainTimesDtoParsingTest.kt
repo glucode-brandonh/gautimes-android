@@ -130,6 +130,57 @@ class TrainTimesDtoParsingTest {
     }
 
     @Test
+    fun parsesJourneysWithIntermediateStations() {
+        val body = """
+            {
+              "data": {
+                "journeys": [
+                  {
+                    "id": "journey-1",
+                    "departure_time": "2026-05-28T03:33:36Z",
+                    "arrival_time": "2026-05-28T03:41:21Z",
+                    "duration_seconds": 503,
+                    "distance_metres": 10891,
+                    "total_fare_zar": 34.0,
+                    "intermediate_stations": [
+                      {
+                        "id": "sandton",
+                        "name": "Sandton",
+                        "arrival_time": "2026-05-28T03:37:00Z",
+                        "duration_seconds": 204
+                      }
+                    ],
+                    "legs": []
+                  }
+                ]
+              },
+              "meta": {
+                "count": 1,
+                "from": "rosebank",
+                "to": "marlboro",
+                "as_of": "2026-05-27T15:47:16Z",
+                "cache": {
+                  "status": "fresh",
+                  "cached_at": "2026-05-27T15:47:09Z",
+                  "age_seconds": 7,
+                  "ttl_seconds": 15
+                }
+              }
+            }
+        """.trimIndent()
+
+        val envelope = json.decodeFromString<ApiEnvelopeDto<JourneysDataDto, JourneysMetaDto>>(body)
+        val journey = envelope.data.journeys.first()
+        val intermediateStation = journey.intermediateStations.first()
+
+        assertEquals(1, journey.intermediateStations.size)
+        assertEquals("sandton", intermediateStation.id)
+        assertEquals("Sandton", intermediateStation.name)
+        assertEquals("2026-05-28T03:37:00Z", intermediateStation.arrivalTime)
+        assertEquals(204, intermediateStation.durationSeconds)
+    }
+
+    @Test
     fun parsesProblemDetail() {
         val body = """
             {

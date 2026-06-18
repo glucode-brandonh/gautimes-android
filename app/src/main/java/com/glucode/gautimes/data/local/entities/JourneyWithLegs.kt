@@ -9,5 +9,10 @@ data class JourneyWithLegs(
         parentColumn = "id",
         entityColumn = "journeyId"
     )
-    val legs: List<JourneyLegEntity>
+    val legs: List<JourneyLegEntity>,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "journeyId"
+    )
+    val intermediateStations: List<JourneyIntermediateStationEntity>
 )

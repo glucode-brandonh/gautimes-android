@@ -40,9 +40,8 @@ fun GautimesApp() {
         composable("settings") {
             SettingsScreen(onBackClick = { navController.popBackStack() })
         }
-        composable("trip_details/{tripId}") { backStackEntry ->
-            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
-            TripDetailsScreen(tripId = tripId, onBackClick = { navController.popBackStack() })
+        composable("trip_details/{tripId}") {
+            TripDetailsScreen(onBackClick = { navController.popBackStack() })
         }
     }
 }

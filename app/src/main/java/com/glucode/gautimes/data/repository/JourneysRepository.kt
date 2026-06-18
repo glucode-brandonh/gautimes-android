@@ -2,8 +2,10 @@ package com.glucode.gautimes.data.repository
 
 import com.glucode.gautimes.data.local.dao.JourneyDao
 import com.glucode.gautimes.data.local.entities.JourneyEntity
+import com.glucode.gautimes.data.local.entities.JourneyIntermediateStationEntity
 import com.glucode.gautimes.data.local.entities.JourneyLegEntity
 import com.glucode.gautimes.data.local.entities.JourneyQueryMetadataEntity
+import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 import com.glucode.gautimes.data.remote.TrainTimesApi
 import com.glucode.gautimes.data.remote.dto.*
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +23,8 @@ interface JourneysRepository {
     ): Flow<JourneyResult>
 
     suspend fun loadMore(from: String, to: String, cursor: String): ApiResult<Unit>
+
+    suspend fun getJourneyById(id: String): JourneyWithLegs?
 
     suspend fun wipeJourneys()
 }
@@ -45,7 +49,7 @@ class DefaultJourneysRepository @Inject constructor(
                             from = from,
                             to = to,
                             after = null,
-                            include = null
+                            include = "intermediate_stations"
                         )
                     }
                     if (result is ApiResult.Failure) {
@@ -77,7 +81,7 @@ class DefaultJourneysRepository @Inject constructor(
                 from = from,
                 to = to,
                 after = cursor,
-                include = null
+                include = "intermediate_stations"
             )
         }
 
@@ -90,6 +94,10 @@ class DefaultJourneysRepository @Inject constructor(
 
             is ApiResult.Failure -> ApiResult.Failure(result.error)
         }
+    }
+
+    override suspend fun getJourneyById(id: String): JourneyWithLegs? {
+        return journeyDao.getJourneyById(id)
     }
 
     override suspend fun wipeJourneys() {
@@ -112,12 +120,15 @@ class DefaultJourneysRepository @Inject constructor(
         val legEntities = data.journeys.flatMap { journey ->
             journey.legs.map { it.asEntity(journey.id) }
         }
+        val intermediateStationEntities = data.journeys.flatMap { journey ->
+            journey.intermediateStations.map { it.asEntity(journey.id) }
+        }
         val metadata = JourneyQueryMetadataEntity(from, to, System.currentTimeMillis(), nextCursor)
 
         if (shouldWipe) {
-            journeyDao.updateJourneysForRoute(from, to, journeyEntities, legEntities, metadata)
+            journeyDao.updateJourneysForRoute(from, to, journeyEntities, legEntities, intermediateStationEntities, metadata)
         } else {
-            journeyDao.appendJourneysForRoute(journeyEntities, legEntities, metadata)
+            journeyDao.appendJourneysForRoute(journeyEntities, legEntities, intermediateStationEntities, metadata)
         }
     }
 
@@ -131,9 +142,12 @@ class DefaultJourneysRepository @Inject constructor(
         val legEntities = data.journeys.flatMap { journey ->
             journey.legs.map { it.asEntity(journey.id) }
         }
+        val intermediateStationEntities = data.journeys.flatMap { journey ->
+            journey.intermediateStations.map { it.asEntity(journey.id) }
+        }
         val metadata = JourneyQueryMetadataEntity(from, to, System.currentTimeMillis(), nextCursor)
 
-        journeyDao.appendJourneysForRoute(journeyEntities, legEntities, metadata)
+        journeyDao.appendJourneysForRoute(journeyEntities, legEntities, intermediateStationEntities, metadata)
     }
 
     fun printFirstAndLastSchedule(source: String, journeys: List<JourneyDto>) {
@@ -174,6 +188,15 @@ class DefaultJourneysRepository @Inject constructor(
         fareProduct = fareProduct,
         tripId = tripId
     )
+
+    private fun JourneyIntermediateStationDto.asEntity(journeyId: String) =
+        JourneyIntermediateStationEntity(
+            id = id,
+            journeyId = journeyId,
+            name = name,
+            arrivalTime = arrivalTime,
+            durationSeconds = durationSeconds
+        )
 
     companion object {
         private val CACHE_TIMEOUT = 15.minutes

@@ -23,7 +23,19 @@ data class JourneyDto(
     val totalFareZar: Double,
     @SerialName("parking_cost_zar")
     val parkingCostZar: Double? = null,
+    @SerialName("intermediate_stations")
+    val intermediateStations: List<JourneyIntermediateStationDto> = emptyList(),
     val legs: List<JourneyLegDto>
+)
+
+@Serializable
+data class JourneyIntermediateStationDto(
+    val id: String,
+    val name: String,
+    @SerialName("arrival_time")
+    val arrivalTime: String?,
+    @SerialName("duration_seconds")
+    val durationSeconds: Int
 )
 
 @Serializable
