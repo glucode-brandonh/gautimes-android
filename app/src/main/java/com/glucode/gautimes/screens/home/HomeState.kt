@@ -24,10 +24,6 @@ data class HomeData(
     val nextCursor: String? = null,
     val infoText: HomeInfoText = HomeInfoText(),
     val isGrantingPermission: Boolean = false,
-    val healthCheck: HealthCheckState = HealthCheckState.Checking,
-    val stationsCheck: StationsCheckState = StationsCheckState.Checking,
-    val journeysCheck: JourneysCheckState = JourneysCheckState.Idle,
-    val isProbeCachingEnabled: Boolean = true,
     val isFromNear: Boolean = true,
     val currentLat: Double? = null,
     val currentLong: Double? = null,
@@ -38,25 +34,6 @@ data class HomeData(
 )
 
 data class HomeInfoText(val title: String = "", val description: String = "")
-
-sealed class HealthCheckState {
-    data object Checking : HealthCheckState()
-    data class Online(val asOf: String) : HealthCheckState()
-    data class Offline(val reason: String) : HealthCheckState()
-}
-
-sealed class StationsCheckState {
-    data object Checking : StationsCheckState()
-    data class Loaded(val count: Int, val asOf: String) : StationsCheckState()
-    data class Failed(val reason: String) : StationsCheckState()
-}
-
-sealed class JourneysCheckState {
-    data object Idle : JourneysCheckState()
-    data object Checking : JourneysCheckState()
-    data class Loaded(val count: Int, val asOf: String) : JourneysCheckState()
-    data class Failed(val reason: String) : JourneysCheckState()
-}
 
 enum class LocationTarget(val label: String) {
     FROM("From"),
@@ -73,9 +50,6 @@ data class HomeUiState(
     val showLocationSheet: Boolean = false,
     val isGrantingPermission: Boolean = false,
     val locationTarget: LocationTarget = LocationTarget.FROM,
-    val healthCheck: HealthCheckState = HealthCheckState.Checking,
-    val stationsCheck: StationsCheckState = StationsCheckState.Checking,
-    val isProbeCachingEnabled: Boolean = true
 )
 
 sealed class HomeAction {
@@ -85,12 +59,7 @@ sealed class HomeAction {
     data object FlipLocations : HomeAction()
     data class UpdateDate(val millis: Long?) : HomeAction()
     data class ToggleLocationSheet(val show: Boolean, val target: LocationTarget) : HomeAction()
-    data object ToggleProbeCaching : HomeAction()
-    data object RefreshHealth : HomeAction()
-    data object RefreshStations : HomeAction()
-    data class RefreshJourneys(val force: Boolean = false) : HomeAction()
     data object RefreshLocation : HomeAction()
-    data object TestNotification : HomeAction()
     data class LoadMore(val cursor: String) : HomeAction()
     data object DismissLocationPermissionCard : HomeAction()
     data class SetGrantingPermission(val isGranting: Boolean) : HomeAction()
@@ -98,7 +67,6 @@ sealed class HomeAction {
 
 sealed class HomeEffect {
     data class ShowError(val message: String) : HomeEffect()
-    data object RunNotificationTest : HomeEffect()
 }
 
 data class SelectionState(
@@ -118,15 +86,7 @@ data class UserInteractionState(
 )
 
 data class DataState(
-    val serviceProbe: ServiceProbeState,
     val stations: List<StationEntity>,
     val journeysResult: JourneyResult,
     val currentLocation: android.location.Location?
-)
-
-data class ServiceProbeState(
-    val healthCheck: HealthCheckState,
-    val stationsCheck: StationsCheckState,
-    val journeysCheck: JourneysCheckState,
-    val isCachingEnabled: Boolean
 )

@@ -32,7 +32,6 @@ class HomeMapper @Inject constructor() {
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         val selection = userInteraction.selection
         val locationSheet = userInteraction.locationSheet
-        val serviceProbe = data.serviceProbe
         val stations = data.stations
         val journeysResult = data.journeysResult
         val location = data.currentLocation
@@ -78,10 +77,6 @@ class HomeMapper @Inject constructor() {
                     description = "Peak fares will be in-affect until 18:45 tonight"
                 ),
                 isGrantingPermission = isGrantingPermission,
-                healthCheck = serviceProbe.healthCheck,
-                stationsCheck = serviceProbe.stationsCheck,
-                journeysCheck = serviceProbe.journeysCheck,
-                isProbeCachingEnabled = serviceProbe.isCachingEnabled,
                 isFromNear = isFromNear,
                 currentLat = currentLat,
                 currentLong = currentLong,

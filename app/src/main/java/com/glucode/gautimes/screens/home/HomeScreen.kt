@@ -2,7 +2,6 @@ package com.glucode.gautimes.screens.home
 
 import android.Manifest
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.components.DepartureTimeCard
@@ -62,14 +61,7 @@ import com.glucode.gautimes.components.sharing.rememberShareState
 import com.glucode.gautimes.data.repository.JourneyResult
 import com.glucode.gautimes.screens.home.ui.DatePickerModal
 import com.glucode.gautimes.screens.home.ui.LocationSelection
-import com.glucode.gautimes.screens.home.ui.debug.CacheModeChip
-import com.glucode.gautimes.screens.home.ui.debug.HealthStatusChip
-import com.glucode.gautimes.screens.home.ui.debug.JourneysStatusChip
-import com.glucode.gautimes.screens.home.ui.debug.LocationDebugChip
-import com.glucode.gautimes.screens.home.ui.debug.StationsStatusChip
-import com.glucode.gautimes.service.NotificationService
-import java.time.OffsetDateTime
-import androidx.core.net.toUri
+import com.glucode.gautimes.screens.home.ui.debug.DebugMenu
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -88,21 +80,6 @@ fun HomeScreen(
                 is HomeEffect.ShowError -> {
                     Toast.makeText(localContext, effect.message, Toast.LENGTH_SHORT).show()
                 }
-
-                HomeEffect.RunNotificationTest -> {
-                    val now = OffsetDateTime.now()
-                    val dummySchedule = listOf(
-                        now.plusSeconds(5).toString() to now.plusMinutes(5).toString(),
-                        now.plusSeconds(35).toString() to now.plusMinutes(6).toString(),
-                        now.plusSeconds(65).toString() to now.plusMinutes(7).toString()
-                    )
-                    NotificationService.start(
-                        localContext,
-                        "Test Station A",
-                        "Test Station B",
-                        dummySchedule
-                    )
-                }
             }
         }
     }
@@ -112,6 +89,9 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Guatimes") },
                 actions = {
+                    if (BuildConfig.DEBUG) {
+                        DebugMenu()
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(imageVector = Icons.Outlined.Settings, contentDescription = "Settings")
                     }
@@ -178,8 +158,7 @@ fun HomeContent(
             item {
                 HomeAssistChips(
                     data = data,
-                    onDateClick = { showDatePicker = true },
-                    onAction = viewmodel::onAction
+                    onDateClick = { showDatePicker = true }
                 )
 
                 if (data.showLocationPermissionCard) {
@@ -340,8 +319,7 @@ fun HomeContent(
 @Composable
 private fun HomeAssistChips(
     data: HomeData,
-    onDateClick: () -> Unit,
-    onAction: (HomeAction) -> Unit
+    onDateClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -363,40 +341,6 @@ private fun HomeAssistChips(
                 Text(data.dateLabel, style = MaterialTheme.typography.titleMedium)
             }
         })
-        if (BuildConfig.DEBUG) {
-            HealthStatusChip(
-                healthCheck = data.healthCheck,
-                onClick = { onAction(HomeAction.RefreshHealth) }
-            )
-            StationsStatusChip(
-                stationsCheck = data.stationsCheck,
-                onClick = { onAction(HomeAction.RefreshStations) }
-            )
-            JourneysStatusChip(
-                journeysCheck = data.journeysCheck,
-                onClick = { onAction(HomeAction.RefreshJourneys(force = true)) }
-            )
-            AssistChip(
-                onClick = { onAction(HomeAction.TestNotification) },
-                label = { Text("🔔 Test Notification") },
-                colors = AssistChipDefaults.assistChipColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            )
-            CacheModeChip(
-                isCachingEnabled = data.isProbeCachingEnabled,
-                onClick = { onAction(HomeAction.ToggleProbeCaching) }
-            )
-            if (data.currentLat != null && data.currentLong != null) {
-                LocationDebugChip(
-                    lat = data.currentLat,
-                    lon = data.currentLong,
-                    onClick = { onAction(HomeAction.RefreshLocation) }
-                )
-            }
-        }
     }
 }
 

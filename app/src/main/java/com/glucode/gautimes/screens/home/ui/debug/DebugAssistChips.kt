@@ -18,9 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.glucode.gautimes.screens.home.HealthCheckState
-import com.glucode.gautimes.screens.home.JourneysCheckState
-import com.glucode.gautimes.screens.home.StationsCheckState
 import java.util.Locale
 
 private val SuccessGreen = Color(0xFF81C784)

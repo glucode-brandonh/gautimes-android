@@ -2,7 +2,6 @@ package com.glucode.gautimes.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.glucode.gautimes.BuildConfig
 import com.glucode.gautimes.data.repository.ApiResult
 import com.glucode.gautimes.data.repository.HealthRepository
 import com.glucode.gautimes.data.repository.JourneyResult
@@ -118,24 +117,6 @@ class HomeViewmodel @Inject constructor(
             initialValue = JourneyResult.Loading
         )
 
-    private val serviceProbeState = combine(
-        _state.map { it.healthCheck },
-        _state.map { it.stationsCheck },
-        journeys,
-        _state.map { it.isProbeCachingEnabled }
-    ) { healthCheck, stationsCheck, journeysResult, isCachingEnabled ->
-        val journeysCheck = when (journeysResult) {
-            is JourneyResult.Loading -> JourneysCheckState.Checking
-            is JourneyResult.Success -> JourneysCheckState.Loaded(
-                journeysResult.journeys.size,
-                "Just now"
-            )
-
-            is JourneyResult.Error -> JourneysCheckState.Failed(journeysResult.message)
-        }
-        ServiceProbeState(healthCheck, stationsCheck, journeysCheck, isCachingEnabled)
-    }
-
     private val userInteractionState = _state.map {
         UserInteractionState(
             selection = SelectionState(it.fromLocation, it.toLocation, it.selectedDate),
@@ -144,12 +125,11 @@ class HomeViewmodel @Inject constructor(
     }
 
     private val dataState = combine(
-        serviceProbeState,
         stations,
         journeys,
         currentLocation
-    ) { serviceProbe, stations, journeysResult, location ->
-        DataState(serviceProbe, stations, journeysResult, location)
+    ) { stations, journeysResult, location ->
+        DataState(stations, journeysResult, location)
     }
 
     val uiState: StateFlow<HomeState> = combine(
@@ -184,9 +164,7 @@ class HomeViewmodel @Inject constructor(
 
     init {
         onAction(HomeAction.RefreshLocation)
-        onAction(HomeAction.RefreshStations)
-        onAction(HomeAction.RefreshJourneys())
-        onAction(HomeAction.RefreshHealth)
+        onAction(HomeAction.Refresh)
 
         viewModelScope.launch {
             getDefaultLocationsUseCase().collect { defaults ->
@@ -213,12 +191,7 @@ class HomeViewmodel @Inject constructor(
             HomeAction.FlipLocations -> flipLocations()
             is HomeAction.UpdateDate -> updateDate(action.millis)
             is HomeAction.ToggleLocationSheet -> toggleLocationSheet(action.show, action.target)
-            HomeAction.ToggleProbeCaching -> toggleProbeCaching()
-            HomeAction.RefreshHealth -> refreshHealth()
-            HomeAction.RefreshStations -> refreshStations()
-            is HomeAction.RefreshJourneys -> refreshJourneys(action.force)
             HomeAction.RefreshLocation -> refreshLocation()
-            HomeAction.TestNotification -> testNotification()
             is HomeAction.LoadMore -> loadMore(action.cursor)
             HomeAction.DismissLocationPermissionCard -> dismissLocationPermissionCard()
             is HomeAction.SetGrantingPermission -> _state.update { it.copy(isGrantingPermission = action.isGranting) }
@@ -255,45 +228,12 @@ class HomeViewmodel @Inject constructor(
     private fun refresh() {
         viewModelScope.launch {
             _state.update { it.copy(isRefreshing = true) }
-            refreshStations(force = true)
+            stationsRepository.refreshStations(forceNetwork = true)
             refreshJourneys(force = true)
             refreshLocation()
-            refreshHealth(force = true)
+            healthRepository.getHealth(forceNetwork = true)
             delay(500.milliseconds)
             _state.update { it.copy(isRefreshing = false) }
-        }
-    }
-
-    private fun refreshHealth(force: Boolean = shouldForceNetwork()) {
-        viewModelScope.launch {
-            _state.update { it.copy(healthCheck = HealthCheckState.Checking) }
-            val newState = when (val result = healthRepository.getHealth(forceNetwork = force)) {
-                is ApiResult.Success -> HealthCheckState.Online(result.value.meta.asOf)
-                is ApiResult.Failure -> {
-                    _effect.emit(HomeEffect.ShowError(result.error.toDisplayMessage()))
-                    HealthCheckState.Offline(result.error.toDisplayMessage())
-                }
-            }
-            _state.update { it.copy(healthCheck = newState) }
-        }
-    }
-
-    private fun refreshStations(force: Boolean = shouldForceNetwork()) {
-        viewModelScope.launch {
-            _state.update { it.copy(stationsCheck = StationsCheckState.Checking) }
-            val newState =
-                when (val result = stationsRepository.refreshStations(forceNetwork = force)) {
-                    is ApiResult.Success -> StationsCheckState.Loaded(
-                        count = stations.value.size,
-                        asOf = "Just now"
-                    )
-
-                    is ApiResult.Failure -> {
-                        _effect.emit(HomeEffect.ShowError(result.error.toDisplayMessage()))
-                        StationsCheckState.Failed(result.error.toDisplayMessage())
-                    }
-                }
-            _state.update { it.copy(stationsCheck = newState) }
         }
     }
 
@@ -304,22 +244,6 @@ class HomeViewmodel @Inject constructor(
     private fun refreshLocation() {
         refreshLocationTrigger.tryEmit(Unit)
     }
-
-    private fun testNotification() {
-        viewModelScope.launch {
-            _effect.emit(HomeEffect.RunNotificationTest)
-        }
-    }
-
-    private fun toggleProbeCaching() {
-        _state.update { it.copy(isProbeCachingEnabled = !it.isProbeCachingEnabled) }
-        refreshHealth()
-        refreshStations()
-        refreshJourneys()
-    }
-
-    private fun shouldForceNetwork(): Boolean =
-        BuildConfig.DEBUG && !_state.value.isProbeCachingEnabled
 
     private fun flipLocations() {
         _state.update {
