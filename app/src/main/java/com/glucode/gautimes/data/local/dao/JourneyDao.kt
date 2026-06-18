@@ -59,4 +59,20 @@ interface JourneyDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMetadata(metadata: JourneyQueryMetadataEntity)
+
+    @Query("DELETE FROM journeys")
+    suspend fun deleteAllJourneys()
+
+    @Query("DELETE FROM journey_legs")
+    suspend fun deleteAllLegs()
+
+    @Query("DELETE FROM journey_query_metadata")
+    suspend fun deleteAllMetadata()
+
+    @Transaction
+    suspend fun deleteAll() {
+        deleteAllJourneys()
+        deleteAllLegs()
+        deleteAllMetadata()
+    }
 }

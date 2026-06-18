@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.data.local.entities.UserSettingsEntity
+import com.glucode.gautimes.data.repository.JourneysRepository
 import com.glucode.gautimes.data.repository.PermissionRepository
 import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.domain.GetUserSettingsUseCase
@@ -40,7 +41,8 @@ class SettingsViewModel @Inject constructor(
     private val getUserSettingsUseCase: GetUserSettingsUseCase,
     private val saveUserSettingsUseCase: SaveUserSettingsUseCase,
     private val stationsRepository: StationsRepository,
-    private val permissionRepository: PermissionRepository
+    private val permissionRepository: PermissionRepository,
+    private val journeysRepository: JourneysRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -87,6 +89,12 @@ class SettingsViewModel @Inject constructor(
             SettingsAction.PermissionChanged -> {
                 _uiState.update { it.copy(isLocationPermissionGranted = permissionRepository.isLocationPermissionGranted()) }
             }
+
+            SettingsAction.WipeJourneys -> {
+                viewModelScope.launch {
+                    journeysRepository.wipeJourneys()
+                }
+            }
         }
     }
 
@@ -120,4 +128,5 @@ sealed class SettingsAction {
     data class SelectLocation(val target: SettingsLocationTarget, val stationId: String) :
         SettingsAction()
     data object PermissionChanged : SettingsAction()
+    data object WipeJourneys : SettingsAction()
 }

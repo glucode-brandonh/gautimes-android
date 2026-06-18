@@ -21,6 +21,8 @@ interface JourneysRepository {
     ): Flow<JourneyResult>
 
     suspend fun loadMore(from: String, to: String, cursor: String): ApiResult<Unit>
+
+    suspend fun wipeJourneys()
 }
 
 class DefaultJourneysRepository @Inject constructor(
@@ -88,6 +90,10 @@ class DefaultJourneysRepository @Inject constructor(
 
             is ApiResult.Failure -> ApiResult.Failure(result.error)
         }
+    }
+
+    override suspend fun wipeJourneys() {
+        journeyDao.deleteAll()
     }
 
     private fun isCacheFresh(lastUpdatedMillis: Long): Boolean {
