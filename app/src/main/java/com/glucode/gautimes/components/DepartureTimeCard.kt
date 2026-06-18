@@ -29,6 +29,7 @@ import com.glucode.gautimes.utils.DateUtils
 
 data class DepartureTimeCardData(
     val id: String = "",
+    val title: String = "",
     val timeValue: String = "",
     val progressDescription: String = "",
     val arrivalTime: String = "",
@@ -42,6 +43,7 @@ fun DepartureTimeCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onReminderClick: () -> Unit = {},
+    showReminderButton: Boolean = true,
     data: DepartureTimeCardData = DepartureTimeCardData()
 ) {
     Card(
@@ -89,22 +91,24 @@ fun DepartureTimeCard(
                 }
 
                 Text(
-                    "NEXT TRAIN LEAVING IN",
+                    data.title,
                     style = MaterialTheme.typography.labelLargeEmphasized,
                 )
 
-                IconButton(
-                    onClick = onReminderClick,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.NotificationsActive,
-                        contentDescription = "Set Reminder",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
+                if (showReminderButton) {
+                    IconButton(
+                        onClick = onReminderClick,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsActive,
+                            contentDescription = "Set Reminder",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
             FallingPixelNumberDisplay(

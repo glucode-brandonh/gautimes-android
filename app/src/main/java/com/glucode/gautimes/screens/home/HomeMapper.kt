@@ -104,6 +104,7 @@ class HomeMapper @Inject constructor() {
             DepartureTimeCardData(
                 id = nextJourney.journey.id,
                 timeValue = minutesUntil.toString(),
+                title = "NEXT TRAIN LEAVING IN",
                 progressDescription = "MINUTES UNTIL DEPARTURE",
                 arrivalTime = nextJourney.journey.arrivalTime,
                 departureTime = nextJourney.journey.departureTime,
@@ -111,6 +112,7 @@ class HomeMapper @Inject constructor() {
             )
         } else {
             DepartureTimeCardData(
+                title = "NEXT TRAIN LEAVING IN",
                 timeValue = "--",
                 progressDescription = "NO MORE JOURNEYS"
             )

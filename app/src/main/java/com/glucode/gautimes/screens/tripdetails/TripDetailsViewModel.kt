@@ -3,6 +3,7 @@ package com.glucode.gautimes.screens.tripdetails
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.glucode.gautimes.components.DepartureTimeCardData
 import com.glucode.gautimes.data.local.dao.StationDao
 import com.glucode.gautimes.data.repository.JourneysRepository
 import com.glucode.gautimes.utils.DateUtils
@@ -13,8 +14,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.glucode.gautimes.components.reminders.ReminderInfo
 import com.glucode.gautimes.components.sharing.ShareInfo
+import com.glucode.gautimes.data.local.entities.JourneyEntity
 import com.glucode.gautimes.data.repository.JourneyResult
 import kotlinx.coroutines.flow.firstOrNull
+import java.text.NumberFormat
+import java.util.Locale
 import javax.inject.Inject
 
 data class StationUiData(
@@ -28,7 +32,8 @@ data class TripDetailsUiState(
     val stations: List<StationUiData> = emptyList(),
     val reminderInfo: ReminderInfo? = null,
     val shareInfo: ShareInfo? = null,
-    val schedule: List<Pair<String, String>> = emptyList()
+    val schedule: List<Pair<String, String>> = emptyList(),
+    val progress: DepartureTimeCardData = DepartureTimeCardData(),
 )
 
 @HiltViewModel
@@ -71,7 +76,11 @@ class TripDetailsViewModel @Inject constructor(
                         journey.intermediateStations.map {
                             StationUiData(
                                 name = it.name,
-                                arrivalTime = it.arrivalTime?.let { time -> DateUtils.formatIsoTime(time) } ?: "--:--"
+                                arrivalTime = it.arrivalTime?.let { time ->
+                                    DateUtils.formatIsoTime(
+                                        time
+                                    )
+                                } ?: "--:--"
                             )
                         }
                     )
@@ -116,12 +125,29 @@ class TripDetailsViewModel @Inject constructor(
                         stations = stationList,
                         reminderInfo = reminderInfo,
                         shareInfo = shareInfo,
-                        schedule = schedule
+                        schedule = schedule,
+                        progress = buildDepartureCard(journey.journey)
                     )
                 }
             } else {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
+    }
+
+    fun buildDepartureCard(journey: JourneyEntity): DepartureTimeCardData {
+        val currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("en-ZA"))
+        val price = currencyFormat.format(journey.totalFareZar)
+        val minutesUntil = DateUtils.getMinutesUntil(journey.departureTime)
+
+        return DepartureTimeCardData(
+            id = journey.id,
+            timeValue = minutesUntil.toString(),
+            title = "TRAIN LEAVING IN",
+            progressDescription = "MINUTES UNTIL DEPARTURE",
+            arrivalTime = journey.arrivalTime,
+            departureTime = journey.departureTime,
+            price = price
+        )
     }
 }

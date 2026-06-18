@@ -19,13 +19,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.NotificationsActive
-import com.glucode.gautimes.components.reminders.ReminderHandler
-import com.glucode.gautimes.components.reminders.rememberReminderState
-import com.glucode.gautimes.components.sharing.ShareHandler
-import com.glucode.gautimes.components.sharing.rememberShareState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,6 +41,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.glucode.gautimes.components.DepartureTimeCard
+import com.glucode.gautimes.components.reminders.ReminderHandler
+import com.glucode.gautimes.components.reminders.rememberReminderState
+import com.glucode.gautimes.components.sharing.ShareHandler
+import com.glucode.gautimes.components.sharing.rememberShareState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,7 +82,7 @@ fun TripDetailsScreen(
                                 localContext.startActivity(intent)
                             }) {
                                 Icon(
-                                    imageVector = Icons.Default.Map,
+                                    imageVector = Icons.Default.Directions,
                                     contentDescription = "Navigate to station"
                                 )
                             }
@@ -124,6 +125,12 @@ fun TripDetailsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    item{
+                        DepartureTimeCard(
+                            showReminderButton = false,
+                            data = uiState.progress
+                        )
+                    }
                     item {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
