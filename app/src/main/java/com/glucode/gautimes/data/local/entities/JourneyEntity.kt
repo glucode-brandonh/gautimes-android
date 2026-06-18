@@ -1,9 +1,15 @@
 package com.glucode.gautimes.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "journeys")
+@Entity(
+    tableName = "journeys",
+    indices = [
+        Index(value = ["fromStationId", "toStationId", "departureTime"], unique = true)
+    ]
+)
 data class JourneyEntity(
     @PrimaryKey val id: String,
     val fromStationId: String,

@@ -53,7 +53,7 @@ class DefaultJourneysRepository @Inject constructor(
                             source = "get journeys",
                             result.value.data.journeys
                         )
-                        saveToCache(from, to, result.value.data, result.value.meta.nextCursor)
+                        saveToCache(from, to, result.value.data, result.value.meta.nextCursor, shouldWipe = !isFresh)
                     }
                 }
             }
@@ -99,7 +99,8 @@ class DefaultJourneysRepository @Inject constructor(
         from: String,
         to: String,
         data: JourneysDataDto,
-        nextCursor: String?
+        nextCursor: String?,
+        shouldWipe: Boolean
     ) {
         val journeyEntities = data.journeys.map { it.asEntity(from, to) }
         val legEntities = data.journeys.flatMap { journey ->
@@ -107,7 +108,11 @@ class DefaultJourneysRepository @Inject constructor(
         }
         val metadata = JourneyQueryMetadataEntity(from, to, System.currentTimeMillis(), nextCursor)
 
-        journeyDao.updateJourneysForRoute(from, to, journeyEntities, legEntities, metadata)
+        if (shouldWipe) {
+            journeyDao.updateJourneysForRoute(from, to, journeyEntities, legEntities, metadata)
+        } else {
+            journeyDao.appendJourneysForRoute(journeyEntities, legEntities, metadata)
+        }
     }
 
     private suspend fun appendToCache(

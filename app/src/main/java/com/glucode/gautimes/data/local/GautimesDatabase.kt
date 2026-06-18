@@ -19,7 +19,7 @@ import com.glucode.gautimes.data.local.entities.UserSettingsEntity
         JourneyQueryMetadataEntity::class,
         UserSettingsEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class GautimesDatabase : RoomDatabase() {
