@@ -16,29 +16,25 @@ import javax.inject.Inject
 class HomeMapper @Inject constructor() {
 
     fun mapToHomeState(
-        isLoading: Boolean,
-        isRefreshing: Boolean,
-        isFetchingMore: Boolean,
-        isGrantingPermission: Boolean,
+        homeUiState: HomeUiState,
         userInteraction: UserInteractionState,
         data: DataState,
         isFromNear: Boolean,
         showLocationPermissionCard: Boolean,
         nearestStationName: String? = null
     ): HomeState {
-        if (isLoading) return HomeState.Loading
+        if (homeUiState.isLoading) return HomeState.Loading
 
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         val selection = userInteraction.selection
         val locationSheet = userInteraction.locationSheet
-        val stations = data.stations
         val journeysResult = data.journeysResult
         val location = data.currentLocation
 
         val currentLat = location?.latitude
         val currentLong = location?.longitude
 
-        val stationNames = stations.map { it.name }
+        val stationNames = data.stations.map { it.name }
         
         val upcomingJourneys = if (journeysResult is JourneyResult.Success) {
             journeysResult.journeys
@@ -68,14 +64,14 @@ class HomeMapper @Inject constructor() {
                 dateLabel = DateUtils.formatDateLabel(selection.dateMillis),
                 scheduleTimes = scheduleTimes,
                 journeyResult = journeysResult,
-                isRefreshing = isRefreshing,
-                isFetchingMore = isFetchingMore,
+                isRefreshing = homeUiState.isRefreshing,
+                isFetchingMore = homeUiState.isFetchingMore,
                 nextCursor = nextCursor,
                 infoText = HomeInfoText(
                     title = "Coming up next",
                     description = "Peak fares will be in-affect until 18:45 tonight"
                 ),
-                isGrantingPermission = isGrantingPermission,
+                isGrantingPermission = homeUiState.isGrantingPermission,
                 isFromNear = isFromNear,
                 currentLat = currentLat,
                 currentLong = currentLong,

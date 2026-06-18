@@ -115,8 +115,6 @@ fun HomeScreen(
     }
 }
 
-// Removed ReminderInfo data class as it is now in com.glucode.gautimes.components.reminders
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeContent(

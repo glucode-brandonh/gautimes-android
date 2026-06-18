@@ -36,6 +36,10 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 @HiltViewModel
+@OptIn(
+    kotlinx.coroutines.ExperimentalCoroutinesApi::class,
+    kotlinx.coroutines.FlowPreview::class
+)
 class HomeViewmodel @Inject constructor(
     private val healthRepository: HealthRepository,
     private val stationsRepository: StationsRepository,
@@ -61,7 +65,8 @@ class HomeViewmodel @Inject constructor(
         }
     }
 
-    private val permissionCardDismissed = MutableStateFlow(permissionRepository.isLocationCardDismissed())
+    private val permissionCardDismissed =
+        MutableStateFlow(permissionRepository.isLocationCardDismissed())
 
     private val stations = stationsRepository.getStationsStream()
         .stateIn(
@@ -70,7 +75,6 @@ class HomeViewmodel @Inject constructor(
             initialValue = emptyList()
         )
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val currentLocation = refreshLocationTrigger.onStart { emit(Unit) }
         .flatMapLatest {
             flow {
@@ -90,14 +94,12 @@ class HomeViewmodel @Inject constructor(
         SelectionState(from, to, date)
     }.distinctUntilChanged()
 
-    @OptIn(
-        kotlinx.coroutines.ExperimentalCoroutinesApi::class,
-        kotlinx.coroutines.FlowPreview::class
-    )
+
     private val journeys = combine(
         selectionState.onEach { println("GauDebug " + "selections firing") },
         stations.onEach { println("GauDebug " + "stations firing") },
-        refreshJourneysTrigger.onStart { emit(false) }.onEach { println("GauDebug " + "refresh firing") }
+        refreshJourneysTrigger.onStart { emit(false) }
+            .onEach { println("GauDebug " + "refresh firing") }
     ) { selection, stations, force ->
         val fromId = stations.find { it.name == selection.from }?.id ?: selection.from.lowercase()
         val toId = stations.find { it.name == selection.to }?.id ?: selection.to.lowercase()
@@ -146,10 +148,7 @@ class HomeViewmodel @Inject constructor(
         val showPermissionCard = !dismissed && !permissionRepository.isLocationPermissionGranted()
 
         homeMapper.mapToHomeState(
-            state.isLoading,
-            state.isRefreshing,
-            state.isFetchingMore,
-            state.isGrantingPermission,
+            state,
             userInteraction,
             data,
             isFromNear,
