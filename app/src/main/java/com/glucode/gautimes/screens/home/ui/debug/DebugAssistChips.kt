@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,11 +46,6 @@ fun LocationDebugChip(
                 Text(label, style = MaterialTheme.typography.titleMedium)
             }
         },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
     )
 }
 
@@ -81,11 +76,6 @@ fun HealthStatusChip(
                 Text(label, style = MaterialTheme.typography.titleMedium)
             }
         },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
     )
 }
 
@@ -116,11 +106,6 @@ fun StationsStatusChip(
                 Text(label, style = MaterialTheme.typography.titleMedium)
             }
         },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
     )
 }
 
@@ -152,11 +137,6 @@ fun JourneysStatusChip(
                 Text(label, style = MaterialTheme.typography.titleMedium)
             }
         },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
     )
 }
 
@@ -182,10 +162,27 @@ fun CacheModeChip(
                 Text(label, style = MaterialTheme.typography.titleMedium)
             }
         },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
+    )
+}
+
+@Composable
+fun TestNotificationChip(
+    onClick: () -> Unit
+) {
+    AssistChip(
+        onClick = onClick,
+        label = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    imageVector = Icons.Default.NotificationsActive,
+                    contentDescription = "Notification"
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text("Test Notification", style = MaterialTheme.typography.titleMedium)
+            }
+        },
     )
 }

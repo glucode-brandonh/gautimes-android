@@ -1,7 +1,6 @@
 package com.glucode.gautimes.screens.home.ui.debug
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -39,6 +38,7 @@ fun DebugMenu(
                 is DebugEffect.ShowError -> {
                     Toast.makeText(localContext, effect.message, Toast.LENGTH_SHORT).show()
                 }
+
                 DebugEffect.RunNotificationTest -> {
                     val now = OffsetDateTime.now()
                     val dummySchedule = listOf(
@@ -64,11 +64,11 @@ fun DebugMenu(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = { expanded = false },
-        modifier = Modifier.padding(16.dp)
+        modifier = Modifier.padding(8.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column {
             Text("Debug Helpers", style = MaterialTheme.typography.titleSmall)
-            
+
             HealthStatusChip(
                 healthCheck = uiState.healthCheck,
                 onClick = { viewModel.onAction(DebugAction.RefreshHealth) }
@@ -85,6 +85,10 @@ fun DebugMenu(
                 isCachingEnabled = uiState.isProbeCachingEnabled,
                 onClick = { viewModel.onAction(DebugAction.ToggleProbeCaching) }
             )
+            TestNotificationChip(
+                onClick = { viewModel.onAction(DebugAction.TestNotification) },
+            )
+
             if (uiState.currentLat != null && uiState.currentLong != null) {
                 LocationDebugChip(
                     lat = uiState.currentLat!!,
@@ -92,10 +96,6 @@ fun DebugMenu(
                     onClick = { viewModel.onAction(DebugAction.RefreshLocation) }
                 )
             }
-            androidx.compose.material3.AssistChip(
-                onClick = { viewModel.onAction(DebugAction.TestNotification) },
-                label = { Text("🔔 Test Notification") }
-            )
         }
     }
 }

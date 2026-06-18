@@ -69,7 +69,7 @@ class HomeMapper @Inject constructor() {
                 nextCursor = nextCursor,
                 infoText = HomeInfoText(
                     title = "Coming up next",
-                    description = "Peak fares will be in-affect until 18:45 tonight"
+                    description = "Peak hours on weekdays are 06:00 to 08:30 in the morning and 15:00 to 18:30 in the afternoon."
                 ),
                 isGrantingPermission = homeUiState.isGrantingPermission,
                 isFromNear = isFromNear,

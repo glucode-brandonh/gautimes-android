@@ -60,7 +60,10 @@ import com.glucode.gautimes.screens.home.ui.DatePickerModal
 import com.glucode.gautimes.screens.home.ui.LocationSelection
 import com.glucode.gautimes.screens.home.ui.debug.DebugMenu
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    androidx.compose.foundation.ExperimentalFoundationApi::class
+)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
@@ -130,8 +133,9 @@ fun HomeContent(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
         viewmodel.onAction(HomeAction.SetGrantingPermission(false))
-        if (result[Manifest.permission.ACCESS_FINE_LOCATION] == true || 
-            result[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+        if (result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        ) {
             viewmodel.onAction(HomeAction.RefreshLocation)
         }
     }
@@ -249,7 +253,9 @@ fun HomeContent(
                                 ) {
                                     if (data.isFetchingMore) {
                                         CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp).padding(top = 8.dp)
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .padding(top = 8.dp)
                                         )
                                     } else {
                                         TextButton(
@@ -328,6 +334,8 @@ fun InfoSection(info: HomeInfoText) {
             info.title,
             style = MaterialTheme.typography.headlineSmallEmphasized
         )
-        Text(info.description)
+        if (info.description.isNotEmpty()) {
+            Text(info.description)
+        }
     }
 }
