@@ -17,7 +17,7 @@ The currently cached set of journeys for an effective route, ordered by departur
 _Avoid_: Batch, schedule set, cached times
 
 **Departure Countdown**:
-A glanceable display of the minutes remaining until the soonest upcoming departure for the effective route.
+A glanceable display of the minutes remaining until the soonest upcoming departure for the effective route. Always displayed using the **Amber LED** brand color (0xFFFFB000) to mimic physical station information boards.
 _Avoid_: Timer, progress card, next train card
 
 **Countdown Semantics**:

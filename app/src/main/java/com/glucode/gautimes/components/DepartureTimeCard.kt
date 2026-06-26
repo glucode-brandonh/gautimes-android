@@ -92,7 +92,7 @@ fun DepartureTimeCard(
 
                 Text(
                     data.title,
-                    style = MaterialTheme.typography.labelLargeEmphasized,
+                    style = MaterialTheme.typography.labelLarge,
                 )
 
                 if (showReminderButton) {

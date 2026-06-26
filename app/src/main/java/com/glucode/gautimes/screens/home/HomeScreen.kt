@@ -332,7 +332,7 @@ fun InfoSection(info: HomeInfoText) {
     Column {
         Text(
             info.title,
-            style = MaterialTheme.typography.headlineSmallEmphasized
+            style = MaterialTheme.typography.headlineSmall
         )
         if (info.description.isNotEmpty()) {
             Text(info.description)
