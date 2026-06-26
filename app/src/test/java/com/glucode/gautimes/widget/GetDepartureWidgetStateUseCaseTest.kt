@@ -11,6 +11,7 @@ import com.glucode.gautimes.data.repository.RateLimitInfo
 import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.data.repository.UserSettingsRepository
 import com.glucode.gautimes.domain.Clock
+import com.glucode.gautimes.domain.DepartureCountdownCalculator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -37,7 +38,8 @@ class GetDepartureWidgetStateUseCaseTest {
                     )
                 )
             ),
-            clock = FixedClock("2026-06-26T08:00:00Z")
+            clock = FixedClock("2026-06-26T08:00:00Z"),
+            departureCountdownCalculator = DepartureCountdownCalculator(FixedClock("2026-06-26T08:00:00Z"))
         )
 
         val state = useCase()
@@ -67,7 +69,8 @@ class GetDepartureWidgetStateUseCaseTest {
                     )
                 )
             ),
-            clock = FixedClock("2026-06-26T08:00:00Z")
+            clock = FixedClock("2026-06-26T08:00:00Z"),
+            departureCountdownCalculator = DepartureCountdownCalculator(FixedClock("2026-06-26T08:00:00Z"))
         )
 
         val state = useCase()
@@ -94,7 +97,8 @@ class GetDepartureWidgetStateUseCaseTest {
                     journeys = listOf(journey("next", "2026-06-26T08:12:00Z"))
                 )
             ),
-            clock = FixedClock("2026-06-26T08:00:00Z")
+            clock = FixedClock("2026-06-26T08:00:00Z"),
+            departureCountdownCalculator = DepartureCountdownCalculator(FixedClock("2026-06-26T08:00:00Z"))
         )
 
         val state = useCase()
@@ -121,7 +125,8 @@ class GetDepartureWidgetStateUseCaseTest {
                     journeys = listOf(journey("next", "2026-06-26T16:12:00Z"))
                 )
             ),
-            clock = FixedClock("2026-06-26T16:00:00Z")
+            clock = FixedClock("2026-06-26T16:00:00Z"),
+            departureCountdownCalculator = DepartureCountdownCalculator(FixedClock("2026-06-26T16:00:00Z"))
         )
 
         val state = useCase()
@@ -150,7 +155,8 @@ class GetDepartureWidgetStateUseCaseTest {
             ),
             stationsRepository = FakeStationsRepository(),
             journeysRepository = journeysRepository,
-            clock = FixedClock("2026-06-26T08:00:00Z")
+            clock = FixedClock("2026-06-26T08:00:00Z"),
+            departureCountdownCalculator = DepartureCountdownCalculator(FixedClock("2026-06-26T08:00:00Z"))
         )
 
         val state = useCase()
@@ -179,7 +185,8 @@ class GetDepartureWidgetStateUseCaseTest {
             ),
             stationsRepository = FakeStationsRepository(),
             journeysRepository = journeysRepository,
-            clock = FixedClock("2026-06-26T08:00:00Z")
+            clock = FixedClock("2026-06-26T08:00:00Z"),
+            departureCountdownCalculator = DepartureCountdownCalculator(FixedClock("2026-06-26T08:00:00Z"))
         )
 
         val state = useCase()
@@ -205,7 +212,8 @@ class GetDepartureWidgetStateUseCaseTest {
                     JourneyResult.Success(journeys = emptyList())
                 )
             ),
-            clock = FixedClock("2026-06-26T08:00:00Z")
+            clock = FixedClock("2026-06-26T08:00:00Z"),
+            departureCountdownCalculator = DepartureCountdownCalculator(FixedClock("2026-06-26T08:00:00Z"))
         )
 
         val state = useCase()
@@ -231,7 +239,8 @@ class GetDepartureWidgetStateUseCaseTest {
                     JourneyResult.Error("Unable to refresh")
                 )
             ),
-            clock = FixedClock("2026-06-26T08:00:00Z")
+            clock = FixedClock("2026-06-26T08:00:00Z"),
+            departureCountdownCalculator = DepartureCountdownCalculator(FixedClock("2026-06-26T08:00:00Z"))
         )
 
         val state = useCase()

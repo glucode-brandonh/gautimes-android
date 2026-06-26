@@ -7,7 +7,6 @@ import com.glucode.gautimes.components.DepartureTimeCardData
 import com.glucode.gautimes.components.reminders.ReminderInfo
 import com.glucode.gautimes.components.sharing.ShareInfo
 import com.glucode.gautimes.data.local.dao.StationDao
-import com.glucode.gautimes.data.local.entities.JourneyEntity
 import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 import com.glucode.gautimes.data.local.entities.StationEntity
 import com.glucode.gautimes.data.repository.JourneyResult
@@ -23,8 +22,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
-import java.util.Locale
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.minutes
 
@@ -47,7 +44,8 @@ data class TripDetailsUiState(
 class TripDetailsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val journeysRepository: JourneysRepository,
-    private val stationDao: StationDao
+    private val stationDao: StationDao,
+    private val departureCardMapper: TripDetailsDepartureCardMapper
 ) : ViewModel() {
 
     private val tripId: String = checkNotNull(savedStateHandle["tripId"])
@@ -118,26 +116,14 @@ class TripDetailsViewModel @Inject constructor(
                     reminderInfo = reminderInfo,
                     shareInfo = shareInfo,
                     schedule = schedule,
-                    progress = buildDepartureCard(journey.journey)
+                    progress = buildDepartureCard(journey)
                 )
             }
         }
     }
 
-    fun buildDepartureCard(journey: JourneyEntity): DepartureTimeCardData {
-        val currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("en-ZA"))
-        val price = currencyFormat.format(journey.totalFareZar)
-        val minutesUntil = DateUtils.getMinutesUntil(journey.departureTime)
-
-        return DepartureTimeCardData(
-            id = journey.id,
-            timeValue = minutesUntil.toString(),
-            title = "TRAIN LEAVING IN",
-            progressDescription = "MINUTES UNTIL DEPARTURE",
-            arrivalTime = journey.arrivalTime,
-            departureTime = journey.departureTime,
-            price = price
-        )
+    fun buildDepartureCard(journey: JourneyWithLegs): DepartureTimeCardData {
+        return departureCardMapper.map(journey)
     }
 
     fun buildStationList(

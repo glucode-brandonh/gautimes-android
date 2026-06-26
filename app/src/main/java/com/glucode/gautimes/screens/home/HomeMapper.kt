@@ -3,17 +3,18 @@ package com.glucode.gautimes.screens.home
 import com.glucode.gautimes.components.DepartureTimeCardData
 import com.glucode.gautimes.components.LocationSelectorBottomSheetData
 import com.glucode.gautimes.components.ScheduleTimeLineItemData
-import com.glucode.gautimes.data.local.entities.JourneyWithLegs
 import com.glucode.gautimes.data.repository.JourneyResult
+import com.glucode.gautimes.domain.DepartureCountdown
+import com.glucode.gautimes.domain.DepartureCountdownCalculator
 import com.glucode.gautimes.ui.theme.cartYellow
 import com.glucode.gautimes.utils.DateUtils
 import java.text.NumberFormat
-import java.time.OffsetDateTime
 import java.util.Locale
-import java.time.ZoneOffset
 import javax.inject.Inject
 
-class HomeMapper @Inject constructor() {
+class HomeMapper @Inject constructor(
+    private val departureCountdownCalculator: DepartureCountdownCalculator
+) {
 
     fun mapToHomeState(
         homeUiState: HomeUiState,
@@ -25,7 +26,6 @@ class HomeMapper @Inject constructor() {
     ): HomeState {
         if (homeUiState.isLoading) return HomeState.Loading
 
-        val now = OffsetDateTime.now(ZoneOffset.UTC)
         val selection = userInteraction.selection
         val locationSheet = userInteraction.locationSheet
         val journeysResult = data.journeysResult
@@ -36,11 +36,10 @@ class HomeMapper @Inject constructor() {
 
         val stationNames = data.stations.map { it.name }
         
-        val upcomingJourneys = if (journeysResult is JourneyResult.Success) {
-            journeysResult.journeys
-                .filter { OffsetDateTime.parse(it.journey.departureTime).isAfter(now) }
-                .sortedBy { it.journey.departureTime }
-        } else emptyList()
+        val countdownWindow = if (journeysResult is JourneyResult.Success) {
+            departureCountdownCalculator.evaluate(journeysResult.journeys)
+        } else null
+        val upcomingJourneys = countdownWindow?.upcomingJourneys ?: emptyList()
 
         val nextCursor = (journeysResult as? JourneyResult.Success)?.nextCursor
 
@@ -54,8 +53,6 @@ class HomeMapper @Inject constructor() {
                 arrivalTime = journey.journey.arrivalTime
             )
         }
-
-        val nextJourney = upcomingJourneys.firstOrNull()
 
         return HomeState.HasData(
             data = HomeData(
@@ -75,7 +72,7 @@ class HomeMapper @Inject constructor() {
                 isFromNear = isFromNear,
                 currentLat = currentLat,
                 currentLong = currentLong,
-                progress = buildProgressCard(nextJourney),
+                progress = buildProgressCard(countdownWindow?.primary),
                 showLocationSheet = locationSheet.show,
                 showLocationPermissionCard = showLocationPermissionCard,
                 locationSection = buildLocationSelector(
@@ -90,16 +87,16 @@ class HomeMapper @Inject constructor() {
     }
 
     private fun buildProgressCard(
-        nextJourney: JourneyWithLegs?
+        countdown: DepartureCountdown?
     ): DepartureTimeCardData {
-        return if (nextJourney != null) {
-            val minutesUntil = DateUtils.getMinutesUntil(nextJourney.journey.departureTime)
+        return if (countdown != null) {
+            val nextJourney = countdown.journey
             val currencyFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("en-ZA"))
             val price = currencyFormat.format(nextJourney.journey.totalFareZar)
 
             DepartureTimeCardData(
                 id = nextJourney.journey.id,
-                timeValue = minutesUntil.toString(),
+                timeValue = countdown.minutesUntilDeparture.toString(),
                 title = "NEXT TRAIN LEAVING IN",
                 progressDescription = "MINUTES UNTIL DEPARTURE",
                 arrivalTime = nextJourney.journey.arrivalTime,

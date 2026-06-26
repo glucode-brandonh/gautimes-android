@@ -8,16 +8,17 @@ import com.glucode.gautimes.data.repository.JourneysRepository
 import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.data.repository.UserSettingsRepository
 import com.glucode.gautimes.domain.Clock
+import com.glucode.gautimes.domain.DepartureCountdownCalculator
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.first
-import java.time.OffsetDateTime
 import javax.inject.Inject
 
 class GetDepartureWidgetStateUseCase @Inject constructor(
     private val userSettingsRepository: UserSettingsRepository,
     private val stationsRepository: StationsRepository,
     private val journeysRepository: JourneysRepository,
-    private val clock: Clock
+    private val clock: Clock,
+    private val departureCountdownCalculator: DepartureCountdownCalculator
 ) {
     suspend operator fun invoke(): DepartureWidgetState {
         val settings = userSettingsRepository.getUserSettingsStream().first() ?: UserSettingsEntity()
@@ -61,19 +62,16 @@ class GetDepartureWidgetStateUseCase @Inject constructor(
         }
 
     private fun List<JourneyWithLegs>.toActiveState(routeLabel: String): DepartureWidgetState {
-        val now = clock.now()
-        val upcoming = filter { OffsetDateTime.parse(it.journey.departureTime).isAfter(now) }
-            .sortedBy { it.journey.departureTime }
-        val next = upcoming.firstOrNull()
+        val countdown = departureCountdownCalculator.evaluate(this).primary
             ?: return DepartureWidgetState.Empty(routeLabel, "No upcoming trains")
 
-        val minutesUntil = java.time.Duration.between(now, OffsetDateTime.parse(next.journey.departureTime)).toMinutes()
+        val next = countdown.journey
         return DepartureWidgetState.Active(
             routeLabel = routeLabel,
-            minutesUntilDeparture = minutesUntil,
+            minutesUntilDeparture = countdown.minutesUntilDeparture,
             departureTime = next.journey.departureTime,
             arrivalTime = next.journey.arrivalTime,
-            secondaryDepartures = upcoming.drop(1).take(2).map { it.journey.departureTime }
+            secondaryDepartures = countdown.secondaryDepartures.map { it.journey.departureTime }
         )
     }
 

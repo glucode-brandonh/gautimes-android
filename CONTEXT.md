@@ -20,6 +20,10 @@ _Avoid_: Batch, schedule set, cached times
 A glanceable display of the minutes remaining until the soonest upcoming departure for the effective route.
 _Avoid_: Timer, progress card, next train card
 
+**Countdown Semantics**:
+The shared rules for identifying upcoming departures, selecting the soonest departure, calculating rounded minutes, and expiring a departure countdown across app surfaces.
+_Avoid_: Timer implementation, ticker, singleton
+
 **Secondary Departures**:
 The next few upcoming departure times after the soonest departure, shown only when there is enough widget space.
 _Avoid_: Schedule list, extra times
