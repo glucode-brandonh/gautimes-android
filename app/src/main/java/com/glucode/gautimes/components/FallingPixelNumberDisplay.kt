@@ -36,11 +36,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.glucode.gautimes.ui.theme.GautimesTheme
-import kotlin.time.Duration.Companion.milliseconds
+import com.glucode.gautimes.ui.theme.amberLED
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-private val AmberLED = Color(0xFFFFB000)
+import kotlin.time.Duration.Companion.milliseconds
 
 private val digitBitmaps = mapOf(
     '0' to listOf(
@@ -217,7 +216,7 @@ private val digitBitmaps = mapOf(
 fun FallingPixelNumberDisplay(
     number: String,
     modifier: Modifier = Modifier,
-    color: Color = AmberLED,
+    color: Color = amberLED,
     blockSize: Dp = 10.dp,
     spacing: Dp = 1.dp,
     digitSpacing: Dp = 0.dp,

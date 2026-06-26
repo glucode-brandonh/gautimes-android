@@ -13,3 +13,6 @@ val Pink40 = Color(0xFF7D5260)
 
 val cartYellow = Color(0xFFF9D74A)
 val cartGray = Color(0xFF999999)
+
+val amberLED = Color(0xFFFFB000)
+

@@ -90,6 +90,7 @@ dependencies {
     // For hiltViewModel() usage inside Compose screens
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.glance.appwidget)
 
     // Networking
     implementation(libs.retrofit.core)

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Gautimes</string>
+    <string name="departure_widget_name">Gautimes departures</string>
+    <string name="departure_widget_description">Shows the next departure countdown for your effective route.</string>
 </resources>

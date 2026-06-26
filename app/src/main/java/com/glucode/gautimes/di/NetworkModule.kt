@@ -16,6 +16,8 @@ import com.glucode.gautimes.data.repository.LocationRepository
 import com.glucode.gautimes.data.repository.PermissionRepository
 import com.glucode.gautimes.data.repository.StationsRepository
 import com.glucode.gautimes.data.repository.UserSettingsRepository
+import com.glucode.gautimes.domain.Clock
+import com.glucode.gautimes.domain.SystemClock
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -71,6 +73,12 @@ abstract class RepositoryModule {
     abstract fun bindPermissionRepository(
         repository: DefaultPermissionRepository
     ): PermissionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindClock(
+        clock: SystemClock
+    ): Clock
 }
 
 @Module
